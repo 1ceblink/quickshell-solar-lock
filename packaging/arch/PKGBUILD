@@ -10,14 +10,14 @@
 
 pkgname=solar-lock
 _name=quickshell-solar-lock   # the upstream repository name (also the install folder under /usr/share)
-pkgver=1.0.0
+pkgver=1.1.0
 pkgrel=1
 pkgdesc='Animated, interactive 3D solar-system lockscreen for Wayland (Quickshell) and KDE Plasma'
 arch=('any')
 url='https://github.com/1ceblink/quickshell-solar-lock'
 license=('MIT' 'GPL-2.0-or-later')   # everything is MIT except kde/lockscreen/LockScreen.qml (GPL-2.0-or-later, see its header)
-depends=('quickshell' 'qt6-quick3d' 'hyprlock')   # hyprlock provides the PAM service and the crash fallback
-makedepends=('git' 'python-pillow')
+depends=('quickshell' 'qt6-quick3d' 'assimp' 'hyprlock')   # assimp: loads the Hearthian planet meshes; hyprlock: PAM service and crash fallback
+makedepends=('git' 'python-pillow' 'python-numpy')
 optdepends=('plasma-workspace: use it as the KDE Plasma lockscreen (solar-lock-install-kde)')
 
 _repo="${SOLAR_LOCK_REPO:-$url.git}"
@@ -58,6 +58,7 @@ build() {
     cp "$srcdir"/2k_*.jpg "$srcdir"/2k_saturn_ring_alpha.png textures/
     # the downloads are already there, so this only derives the ring disc and the bump maps (no network)
     python tools/fetch_textures.py
+    python tools/make_hearthian_meshes.py   # the Hearthian theme's planet meshes (original, procedural)
 }
 
 package() {
@@ -68,6 +69,7 @@ package() {
     install -Dm755 bin/lock-solar bin/preview bin/install-kde bin/uninstall-kde -t "$dest/bin"
     install -Dm644 kde/lockscreen/LockScreen.qml -t "$dest/kde/lockscreen"
     install -Dm644 textures/*.jpg textures/*.png -t "$dest/textures"
+    install -Dm644 models/generated/*.glb -t "$dest/models/generated"
     install -Dm644 README.md -t "$pkgdir/usr/share/doc/$_name"
     install -Dm644 LICENSE "$pkgdir/usr/share/licenses/$pkgname/LICENSE"
 

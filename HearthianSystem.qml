@@ -1,13 +1,22 @@
 import QtQuick
 import QtQuick3D
+import QtQuick3D.AssetUtils
 
-// A fan theme inspired by the solar system of the game Outer Wilds, built only from Qt Quick 3D primitives
-// (no textures, no game assets). Descriptions are original and kept light on spoilers.
+// A fan theme inspired by the solar system of the game Outer Wilds. The planets are original meshes made by
+// tools/make_hearthian_meshes.py (models/generated/); if you extracted models from your own copy of the game into
+// models/ow/ (never committed), those are used instead; with neither, simple primitives stand in.
+// The effects (sand column, cyclones, fog, black hole, comet tail) are always drawn here. No game assets are
+// shipped. Descriptions are original and kept light on spoilers.
+//
+// This work is unofficial Fan Content created under permission from the Mobius Digital Fan Content Policy.
+// It includes materials which are the property of Mobius Digital and it is neither approved nor endorsed by
+// Mobius Digital.
 // Scene.qml loads one theme at a time and talks to it through `planets`, `sunInfo`, `moonInfo` and bodyPos().
 Node {
     id: system
     required property Item scene
     readonly property string title: "Hearthian System"
+    readonly property real homeZ: 100            // a smaller system than the solar one: bring the camera closer
 
     // indices into `planets`; the Quantum Moon (10) can orbit any of `qmHosts`
     readonly property var names: ["Sun Station", "the Hourglass Twins", "Timber Hearth", "Attlerock", "Brittle Hollow",
@@ -88,6 +97,22 @@ Node {
         pickable: false
         scale: box.size.times(0.01)
         materials: PrincipledMaterial { baseColor: box.col; roughness: 0.8; metalness: 0.2; specularAmount: 0.2 }
+    }
+    // a planet mesh scaled to radius r: the user's own models/ow/<name>.glb, else models/generated/<name>.glb;
+    // `ok` is false when neither loads, and the primitives next to it are shown instead
+    component Mesh: Node {
+        id: mesh
+        property string name
+        property real r: 1
+        property int stage: 0
+        readonly property bool ok: loader.status === RuntimeLoader.Success
+        scale: Qt.vector3d(mesh.r, mesh.r, mesh.r)
+        RuntimeLoader {
+            id: loader
+            source: mesh.stage === 0 ? Qt.resolvedUrl("models/ow/" + mesh.name + ".glb")
+                  : mesh.stage === 1 ? Qt.resolvedUrl("models/generated/" + mesh.name + ".glb") : ""
+            onStatusChanged: if (status === RuntimeLoader.Error && mesh.stage < 2) mesh.stage++
+        }
     }
     // a body that can be hovered: soft halo in its own colour while hovered
     component Body: Node {
@@ -173,8 +198,10 @@ Node {
                 property real flow: 0
                 NumberAnimation on flow { from: 0; to: 1; duration: 2400; loops: Animation.Infinite }
                 NumberAnimation on eulerRotation.y { from: 0; to: 360; duration: 14000; loops: Animation.Infinite }
-                Ball { r: 0.9; col: "#d9a066"; x: 1.5 }           // Ash Twin
-                Ball { r: 0.95; col: "#b35a3c"; x: -1.5 }         // Ember Twin
+                Mesh { id: ashMesh; name: "ash_twin"; r: 0.9; x: 1.5 }      // Ash Twin
+                Mesh { id: emberMesh; name: "ember_twin"; r: 0.95; x: -1.5 } // Ember Twin
+                Ball { visible: !ashMesh.ok; r: 0.9; col: "#d9a066"; x: 1.5 }
+                Ball { visible: !emberMesh.ok; r: 0.95; col: "#b35a3c"; x: -1.5 }
                 Model {                                           // the sand column
                     source: "#Cylinder"
                     pickable: false
@@ -209,9 +236,10 @@ Node {
                 eulerRotation.z: 12
                 Node {
                     NumberAnimation on eulerRotation.y { from: 0; to: 360; duration: 40000; loops: Animation.Infinite }
-                    Ball { r: 1.3; col: "#6f9a48" }
+                    Mesh { id: hearthMesh; name: "timber_hearth"; r: 1.3 }
+                    Ball { visible: !hearthMesh.ok; r: 1.3; col: "#6f9a48" }
                     Repeater3D {                                      // mountains and the crater rim
-                        model: 9
+                        model: hearthMesh.ok ? 0 : 9
                         Node {
                             required property int index
                             eulerRotation: Qt.vector3d(Math.acos(1 - 2 * (index + 0.5) / 9) * 180 / Math.PI, index * 137.5, 0)
@@ -227,7 +255,8 @@ Node {
                     id: attle
                     scene: system.scene; idx: 3; r: 0.38; col: "#a39e96"
                     x: 2.6
-                    Ball { r: 0.38; col: "#a39e96" }
+                    Mesh { id: attleMesh; name: "attlerock"; r: 0.38 }
+                    Ball { visible: !attleMesh.ok; r: 0.38; col: "#a39e96" }
                 }
             }
         }
@@ -264,12 +293,14 @@ Node {
                         }
                     }
                 }
-                Repeater3D {                                      // crust plates with gaps; a few break off and fall in
+                Mesh { id: hollowMesh; name: "brittle_hollow"; r: 1.45 }
+                Repeater3D {                                      // fallback crust: plates with gaps; a few break off and fall in
                     model: 34
                     Node {
                         id: plate
                         required property int index
-                        readonly property bool falls: index % 9 === 4
+                        readonly property bool falls: index % 9 === 4 && !hollowMesh.ok
+                        visible: !hollowMesh.ok
                         property real k: 0                        // 0 = in place, 1 = swallowed
                         property real appear: 1
                         eulerRotation: Qt.vector3d(Math.acos(1 - 2 * (index + 0.5) / 34) * 180 / Math.PI, index * 137.5, 0)
@@ -295,7 +326,9 @@ Node {
                     id: lantern
                     scene: system.scene; idx: 5; r: 0.4; col: "#ffb347"
                     x: 2.8
-                    Ball { r: 0.4; col: "#ffb347"; shine: 0.9 }
+                    Mesh { id: lanternMesh; name: "hollows_lantern"; r: 0.4 }
+                    Ball { visible: !lanternMesh.ok; r: 0.4; col: "#ffb347"; shine: 0.9 }
+                    Haze { r: 0.55; col: "#ffb347"; opacity: 0.2; depthBias: -1 }   // its glow
                 }
             }
         }
@@ -310,7 +343,8 @@ Node {
             x: 27
             Node {
                 NumberAnimation on eulerRotation.y { from: 0; to: 360; duration: 70000; loops: Animation.Infinite }
-                Ball { r: 2.7; col: "#2f8f8a" }
+                Mesh { id: deepMesh; name: "giants_deep"; r: 2.7 }
+                Ball { visible: !deepMesh.ok; r: 2.7; col: "#2f8f8a" }
                 Repeater3D {                                      // cyclones: spinning white arms on the surface
                     model: 6
                     Node {
@@ -364,9 +398,10 @@ Node {
             x: 36
             Node {
                 NumberAnimation on eulerRotation.y { from: 0; to: 360; duration: 90000; loops: Animation.Infinite }
-                Ball { r: 1.1; col: "#2c3a2e" }
+                Mesh { id: brambleMesh; name: "dark_bramble"; r: 2.2 }
+                Ball { visible: !brambleMesh.ok; r: 1.1; col: "#2c3a2e" }
                 Repeater3D {
-                    model: 8
+                    model: brambleMesh.ok ? 0 : 8
                     Node {
                         required property int index
                         eulerRotation: Qt.vector3d(Math.acos(1 - 2 * (index + 0.5) / 8) * 180 / Math.PI, index * 137.5, 0)
@@ -390,7 +425,7 @@ Node {
                     }
                 }
             }
-            Haze { r: 2.2; col: "#dfe9e4"; opacity: 0.35; depthBias: -1 }
+            Haze { r: brambleMesh.ok ? 1.5 : 2.2; col: "#dfe9e4"; opacity: 0.35; depthBias: -1 }   // the vine tips poke out of the fog
         }
     }
 
@@ -410,7 +445,8 @@ Node {
             }
             readonly property real dist: position.length()
             position: Qt.vector3d(31 * Math.cos(ea) - 25.9, 0, 17 * Math.sin(ea))
-            Ball { r: 0.6; col: "#cfe8f2"; shine: 0.15 }
+            Mesh { id: cometMesh; name: "interloper"; r: 0.6 }
+            Ball { visible: !cometMesh.ok; r: 0.6; col: "#cfe8f2"; shine: 0.15 }
             Node {                                                // the tail points away from the Sun and grows near it
                 id: tail
                 eulerRotation.y: -Math.atan2(comet.position.z, comet.position.x) * 180 / Math.PI
@@ -438,7 +474,8 @@ Node {
     Body {
         id: qm
         scene: system.scene; idx: 10; r: 0.55; col: "#9b93c9"
-        Ball { r: 0.55; col: "#8d86a8" }
+        Mesh { id: qmMesh; name: "quantum_moon"; r: 0.55 }
+        Ball { visible: !qmMesh.ok; r: 0.55; col: "#8d86a8" }
         Haze { r: 0.78; col: "#d8d4ff"; opacity: 0.22; depthBias: -1 }
     }
     function qmObserved() {

@@ -56,6 +56,7 @@ for f in Scene.qml SolarSystem.qml HearthianSystem.qml; do
     ln -s "$DIR/$f" "$NEW/contents/lockscreen/$f"
 done
 ln -s "$DIR/textures" "$NEW/contents/lockscreen/textures"
+[ -d "$DIR/models" ] && ln -s "$DIR/models" "$NEW/contents/lockscreen/models"   # Hearthian theme meshes
 echo "made by quickshell-solar-lock/bin/install-kde from $SYS; remove with bin/uninstall-kde" > "$NEW/$MARKER"
 chmod 755 "$NEW"
 

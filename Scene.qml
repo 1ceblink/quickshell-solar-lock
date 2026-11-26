@@ -53,7 +53,7 @@ Rectangle {
     readonly property color haloCol: Qt.rgba(novaColor.r * (1 - 0.7 * novaBlue), novaColor.g * (1 - 0.5 * novaBlue), novaColor.b, 1)
     property bool sceneReady: false   // 3D view is enabled one frame after the first (black) frame
     property int framesSeen: 0
-    readonly property real homeZ: 130   // camera distance that fits the whole system
+    readonly property real homeZ: system && system.homeZ ? system.homeZ : 130   // camera distance that fits the whole system (per theme)
     signal submit(string password)
     signal unlocked()
     signal edited()   // user typed again: the shell clears its `failed` flag (never assign a bound property here)
