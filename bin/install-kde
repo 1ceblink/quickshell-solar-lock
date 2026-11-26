@@ -50,9 +50,11 @@ cp -a "$SYS/." "$NEW/"
 rm -rf "$NEW/contents/lockscreen"
 mkdir "$NEW/contents/lockscreen"
 # LockScreen.qml is resolved through the package and must be a real file inside it;
-# Scene.qml and the textures are loaded by the QML engine, which follows symlinks.
+# Scene.qml, the theme files and the textures are loaded by the QML engine, which follows symlinks.
 cp "$DIR/kde/lockscreen/LockScreen.qml" "$NEW/contents/lockscreen/LockScreen.qml"
-ln -s "$DIR/Scene.qml" "$NEW/contents/lockscreen/Scene.qml"
+for f in Scene.qml SolarSystem.qml HearthianSystem.qml; do
+    ln -s "$DIR/$f" "$NEW/contents/lockscreen/$f"
+done
 ln -s "$DIR/textures" "$NEW/contents/lockscreen/textures"
 echo "made by quickshell-solar-lock/bin/install-kde from $SYS; remove with bin/uninstall-kde" > "$NEW/$MARKER"
 chmod 755 "$NEW"

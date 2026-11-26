@@ -11,7 +11,7 @@ Rectangle {
     property bool failed: false
     property bool busy: false
     property bool unlocking: false
-    property int selected: -1          // -2 = Sun, 0..7 = planets, -1 = none (overview)
+    property int selected: -1          // -2 = Sun, -3 = the Moon, 0.. = the theme's bodies, -1 = none (overview)
 
     // ---- supernova ------------------------------------------------------------------------------------------
     // Every `novaInterval` ms of being locked the Sun goes supernova, seen from the normal overview (no zoom).
@@ -58,37 +58,24 @@ Rectangle {
     signal unlocked()
     signal edited()   // user typed again: the shell clears its `failed` flag (never assign a bound property here)
 
-    // dist/size are artistic, not to scale. tilt = axial tilt (deg), spin = seconds per rotation (negative = retrograde)
-    readonly property var planets: [
-        { name: "Mercury", dist: 7,    size: 0.8,  tex: "2k_mercury.jpg", normal: "mercury_n.png", tilt: 0,   spin: 120, year: 0.24, au: 0.39, color: "#bda98f",
-          desc: "The smallest planet and the closest to the Sun. A year here lasts just 88 days, yet a single day lasts 176 Earth days." },
-        { name: "Venus",   dist: 10.5, size: 1.25, tex: "2k_venus_atmosphere.jpg", tilt: 177, spin: 200, year: 0.62, au: 0.72, color: "#e8c27c", atmo: "#ffe0a8", ao: 0.14,
-          desc: "The hottest planet, around 465 \u00b0C under thick clouds of acid. It spins backwards, so the Sun rises in the west." },
-        { name: "Earth",   dist: 15,   size: 1.35, tex: "2k_earth_daymap.jpg", tilt: 23,  spin: 40,  year: 1.0,  au: 1.0,  color: "#3a8cbd", clouds: true, moon: true, atmo: "#8cc4ff", ao: 0.12,
-          desc: "Home, and the only world known to host life. Oceans cover 71% of its surface, and the Moon keeps its tilt steady." },
-        { name: "Mars",    dist: 19,   size: 1.0,  tex: "2k_mars.jpg", normal: "mars_n.png", tilt: 25,  spin: 41,  year: 1.88, au: 1.52, color: "#c9653c", atmo: "#ffa874", ao: 0.06,
-          desc: "A cold, rusty desert with the tallest volcano in the system: Olympus Mons, about 22 km high." },
-        { name: "Jupiter", dist: 27,   size: 3.0,  tex: "2k_jupiter.jpg", flat: 0.935, tilt: 3,   spin: 16,  year: 11.86, au: 5.2, color: "#cc8c54",
-          desc: "A gas giant bigger than all the other planets combined. Its Great Red Spot is a storm that has raged for centuries." },
-        { name: "Saturn",  dist: 35,   size: 2.5,  tex: "2k_saturn.jpg", flat: 0.90, tilt: 27,  spin: 18,  year: 29.4, au: 9.58, color: "#e3c57c", rings: true,
-          desc: "Famous for its rings of ice and rock. It is so light for its size that it would float in a big enough bathtub." },
-        { name: "Uranus",  dist: 42,   size: 1.9,  tex: "2k_uranus.jpg", flat: 0.977, tilt: 98,  spin: -30, year: 84,   au: 19.2, color: "#a6e4df", atmo: "#a8f0ec", ao: 0.1,
-          desc: "An ice giant rolling around the Sun on its side, tilted 98\u00b0. Each of its seasons lasts about 21 years." },
-        { name: "Neptune", dist: 48,   size: 1.9,  tex: "2k_neptune.jpg", flat: 0.983, tilt: 28,  spin: 24,  year: 165,  au: 30.1, color: "#3f60d2", atmo: "#7f9cff", ao: 0.1,
-          desc: "The windiest world, with gusts over 2,000 km/h. The farthest planet, it takes 165 years to orbit the Sun once." }
-    ]
-    readonly property var sunInfo: {
-        "name": "Sun", "size": 3.5, "color": "#ffb12e",
-        "meta": "a G-type star \u00b7 4.6 billion years old",
-        "desc": "Our star holds 99.8% of the system's mass. Its light takes just over 8 minutes to reach Earth."
-    }
+    // ---- themes ---------------------------------------------------------------------------------------------
+    // Each theme is its own file with its bodies and their descriptions; the Sun and the supernova are shared.
+    // `theme` is the one shown when the lock starts; Up/Down (with an empty password) or the corner button switch it.
+    property string theme: "solar"
+    readonly property var themes: ["solar", "hearthian"]
+    readonly property var system: systemLoader.item
+    readonly property var planets: system ? system.planets : []
+    readonly property var sunInfo: system ? system.sunInfo : ({ "name": "Sun", "size": 3.5, "color": "#ffb12e", "desc": "" })
+    readonly property var moonInfo: system ? system.moonInfo : null   // the solar theme's Moon (target -3); null if none
+    readonly property bool blackout: veil.opacity > 0.97 || flash.opacity > 0.97   // nothing in the scene can be seen
 
-    readonly property var moonInfo: {
-        "name": "Moon", "size": 0.375, "color": "#c9c4b8",
-        "meta": "orbits Earth every 27 days \u00b7 384,400 km away",
-        "desc": "Earth's only natural satellite, about a quarter of its width. It drifts away from us by roughly 3.8 cm every year."
+    // fade to black, swap the theme, fade back in. step: +1 = next, -1 = previous
+    function switchTheme(step) {
+        if (unlocking || themeAnim.running) return
+        nextTheme = themes[(themes.indexOf(theme) + step + themes.length) % themes.length]
+        themeAnim.start()
     }
-    readonly property int moonHost: planets.findIndex(p => p.moon === true)   // the planet the Moon orbits
+    property string nextTheme: theme
     property bool flying: false        // true while the camera is flying in or out: no description card then
 
     property int hovered: -1
@@ -106,21 +93,13 @@ Rectangle {
 
     // screen-space description of a target: centre, rough radius and the reach we accept for clicks
     function screenOf(i) {
-        var pos = Qt.vector3d(0, 0, 0)
-        if (i === -3) {
-            var h = rep.objectAt(moonHost)
-            if (!h) return null
-            pos = h.moonPos
-        } else if (i !== -2) {
-            var o = rep.objectAt(i)
-            if (!o) return null
-            pos = o.bodyPos
-        }
+        var pos = i === -2 ? Qt.vector3d(0, 0, 0) : system ? system.bodyPos(i) : null
+        if (!pos) return null
         var sp = view.mapFrom3DScene(pos)
         if (sp.z <= 0) return null
-        var size = i === -3 ? moonInfo.size : i === -2 ? sunInfo.size : planets[i].size
+        var size = i === -3 ? moonInfo.size : i === -2 ? sunR : planets[i].size   // sunR follows the supernova's shrink and swell
         var r = size * (height / 2) / (0.364 * (sp.z + cam.clipNear))
-        return { x: sp.x, y: sp.y, r: r, reach: Math.max(i === -3 ? 14 : 26, r * 1.15) }
+        return { x: sp.x, y: sp.y, z: sp.z, r: r, reach: Math.max(i === -3 || size < 0.6 ? 14 : 26, r * 1.15) }
     }
 
     function hitTest(px, py) {
@@ -277,205 +256,22 @@ Rectangle {
             }
         }
 
-        DefaultMaterial { id: dashMat; lighting: DefaultMaterial.NoLighting; diffuseColor: "#f3e6c4" }
-
-        // asteroid belt between Mars and Jupiter: tiny cubes sharing one material
-        PrincipledMaterial { id: rockMat; baseColor: "#c4a67e"; roughness: 1; specularAmount: 0; emissiveFactor: Qt.vector3d(0.16, 0.12, 0.08) }
-        Node {
-            opacity: 1 - 0.9 * root.space
-            NumberAnimation on eulerRotation.y { from: 0; to: 360; duration: 400000; loops: Animation.Infinite }
-            Repeater3D {
-                model: 260
-                Model {
-                    property real a: Math.random() * Math.PI * 2
-                    property real r: 22.5 + (Math.random() + Math.random() - 1) * 1.8
-                    property real e: 0.0008 + Math.random() * 0.0016
-                    source: "#Cube"
-                    position: Qt.vector3d(Math.cos(a) * r, (Math.random() - 0.5) * 0.5, Math.sin(a) * r)
-                    eulerRotation: Qt.vector3d(Math.random() * 360, Math.random() * 360, 0)
-                    scale: Qt.vector3d(e, e, e)
-                    pickable: false
-                    materials: [ rockMat ]
-                }
-            }
+        // the theme's own bodies (planets, moons, belts, orbits); only one theme is loaded at a time
+        Loader3D {
+            id: systemLoader
+            sourceComponent: root.theme === "hearthian" ? hearthianComp : solarComp
         }
-
-        Repeater3D {
-            id: rep
-            model: root.planets
-            Node {
-                id: orbit
-                required property var modelData
-                required property int index
-                readonly property vector3d bodyPos: body.scenePosition
-                readonly property vector3d moonPos: moonBody.scenePosition
-                property real moonGlow: root.hovered === -3 && modelData.moon === true ? 1 : 0
-                Behavior on moonGlow { NumberAnimation { duration: 160 } }
-                property real glow: root.hovered === orbit.index ? 1 : 0
-                readonly property color tint: modelData.color
-                Behavior on glow { NumberAnimation { duration: 160 } }
-                Texture {
-                    id: bodyTex
-                    source: root.tex(orbit.modelData.tex)
-                    generateMipmaps: true; mipFilter: Texture.Linear
-                }
-                Texture {
-                    id: bodyNormal
-                    source: orbit.modelData.normal !== undefined ? root.tex(orbit.modelData.normal) : ""
-                    generateMipmaps: true; mipFilter: Texture.Linear
-                }
-                Texture { id: moonNormal; source: root.tex("moon_n.png"); generateMipmaps: true; mipFilter: Texture.Linear }
-                Texture { id: moonTex; source: root.tex("2k_moon.jpg"); generateMipmaps: true; mipFilter: Texture.Linear }
-
-                NumberAnimation on eulerRotation.y {
-                    from: orbit.index * 47
-                    to: orbit.index * 47 + 360
-                    duration: 40000 * Math.pow(orbit.modelData.year, 0.7)
-                    loops: Animation.Infinite
-                }
-
-                // orbit ring: short flat dashes of constant length and width, so they stay sharp at any angle
-                Node {
-                    opacity: (root.hovered === orbit.index || root.selected === orbit.index ? 0.7 : 0.3) * (1 - 0.9 * root.space)
-                    Repeater3D {
-                        model: Math.round(2 * Math.PI * orbit.modelData.dist / 2.5)
-                        Model {
-                            required property int index
-                            readonly property real ang: index * 2 * Math.PI / Math.round(2 * Math.PI * orbit.modelData.dist / 2.5)
-                            source: "#Cube"
-                            position: Qt.vector3d(Math.cos(ang) * orbit.modelData.dist, 0, Math.sin(ang) * orbit.modelData.dist)
-                            eulerRotation.y: -ang * 180 / Math.PI - 90
-                            scale: Qt.vector3d(0.015, 0.0004, 0.0016)
-                            pickable: false
-                            materials: [ dashMat ]
-                        }
-                    }
-                }
-
-                Node {
-                    id: body
-                    x: orbit.modelData.dist
-                    // axial tilt, then spin around the tilted axis
-                    Node {
-                        eulerRotation.z: orbit.modelData.tilt
-                        Model {
-                            property int planetIndex: orbit.index
-                            readonly property real sc: orbit.modelData.size * 0.02
-                            source: "#Sphere"
-                            scale: Qt.vector3d(sc, sc * (orbit.modelData.flat !== undefined ? orbit.modelData.flat : 1), sc)
-                            pickable: true
-                            materials: PrincipledMaterial {
-                                baseColorMap: bodyTex
-                                emissiveMap: bodyTex
-                                emissiveFactor: Qt.vector3d(orbit.tint.r * orbit.glow * 0.4, orbit.tint.g * orbit.glow * 0.4, orbit.tint.b * orbit.glow * 0.4)
-                                normalMap: orbit.modelData.normal !== undefined ? bodyNormal : null
-                                normalStrength: 0.9
-                                roughness: 1
-                                metalness: 0
-                                specularAmount: 0
-                            }
-                            NumberAnimation on eulerRotation.y {
-                                from: 0; to: orbit.modelData.spin > 0 ? 360 : -360
-                                duration: Math.abs(orbit.modelData.spin) * 1000
-                                loops: Animation.Infinite
-                            }
-                        }
-                        // earth: clouds + thin atmosphere
-                        Model {
-                            visible: orbit.modelData.clouds === true
-                            readonly property real sc: orbit.modelData.size * 0.0203
-                            source: "#Sphere"
-                            scale: Qt.vector3d(sc, sc, sc)
-                            pickable: false
-                            materials: PrincipledMaterial {
-                                baseColor: "white"
-                                roughness: 1
-                                opacityMap: Texture { source: root.tex("2k_earth_clouds.jpg"); generateMipmaps: true; mipFilter: Texture.Linear }
-                                opacityChannel: Material.R
-                            }
-                            NumberAnimation on eulerRotation.y { from: 0; to: 360; duration: 34000; loops: Animation.Infinite }
-                        }
-                        Model {
-                            visible: orbit.modelData.atmo !== undefined
-                            readonly property real sc: orbit.modelData.size * 0.0207
-                            source: "#Sphere"
-                            scale: Qt.vector3d(sc, sc, sc)
-                            opacity: orbit.modelData.ao !== undefined ? orbit.modelData.ao : 0
-                            depthBias: -1   // same centre as the clouds: pin the draw order so the blend can't flip
-                            pickable: false
-                            materials: DefaultMaterial {
-                                lighting: DefaultMaterial.NoLighting
-                                diffuseColor: orbit.modelData.atmo !== undefined ? orbit.modelData.atmo : "white"
-                            }
-                        }
-                        // hover halo in the planet's own colour
-                        Repeater3D {
-                            model: [ { k: 0.0245, o: 0.2, b: -3 }, { k: 0.031, o: 0.07, b: -4 } ]
-                            Model {
-                                required property var modelData
-                                visible: orbit.glow > 0.01
-                                readonly property real sc: orbit.modelData.size * modelData.k
-                                source: "#Sphere"
-                                scale: Qt.vector3d(sc, sc, sc)
-                                opacity: modelData.o * orbit.glow
-                                depthBias: modelData.b
-                                pickable: false
-                                materials: DefaultMaterial {
-                                    lighting: DefaultMaterial.NoLighting
-                                    diffuseColor: orbit.modelData.color
-                                }
-                            }
-                        }
-                        // saturn's rings, in the planet's equatorial plane
-                        Model {
-                            visible: orbit.modelData.rings === true
-                            source: "#Rectangle"
-                            eulerRotation.x: -90
-                            scale: Qt.vector3d(orbit.modelData.size * 0.0454, orbit.modelData.size * 0.0454, 1)
-                            pickable: false
-                            materials: DefaultMaterial {
-                                lighting: DefaultMaterial.NoLighting
-                                cullMode: Material.NoCulling
-                                diffuseMap: Texture { source: root.tex("saturn_ring.png"); generateMipmaps: true; mipFilter: Texture.Linear }
-                            }
-                        }
-                    }
-                    // the moon
-                    Node {
-                        visible: orbit.modelData.moon === true
-                        NumberAnimation on eulerRotation.y { from: 0; to: 360; duration: 25000; loops: Animation.Infinite }
-                        Model {
-                            id: moonBody
-                            x: 2.1
-                            source: "#Sphere"
-                            scale: Qt.vector3d(0.0075, 0.0075, 0.0075)
-                            pickable: false
-                            materials: PrincipledMaterial {
-                                baseColorMap: moonTex
-                                emissiveMap: moonTex
-                                emissiveFactor: Qt.vector3d(0.4 * orbit.moonGlow, 0.4 * orbit.moonGlow, 0.37 * orbit.moonGlow)
-                                normalMap: moonNormal
-                                normalStrength: 0.9
-                                roughness: 1
-                                specularAmount: 0
-                            }
-                        }
-                    }
-                }
-            }
-        }
+        Component { id: solarComp; SolarSystem { scene: root } }
+        Component { id: hearthianComp; HearthianSystem { scene: root } }
 
         // glide the camera pivot toward the selected body (or back to the centre)
         FrameAnimation {
             running: true
             onTriggered: {
                 var t = Qt.vector3d(0, 0, 0)
-                if (root.selected >= 0) {
-                    var o = rep.objectAt(root.selected)
-                    if (o) t = o.bodyPos
-                } else if (root.selected === -3) {
-                    var mo = rep.objectAt(root.moonHost)
-                    if (mo) t = mo.moonPos
+                if (root.selected !== -1 && root.selected !== -2 && root.system) {
+                    var o = root.system.bodyPos(root.selected)
+                    if (o) t = o
                 }
                 root.fxTime += frameTime
                 var k = Math.min(1, frameTime * 5)
@@ -512,6 +308,7 @@ Rectangle {
     TapHandler {
         onTapped: eventPoint => {
             var p = eventPoint.position
+            if (themeButton.contains(themeButton.mapFromItem(root, p.x, p.y))) { root.switchTheme(1); return }
             root.select(root.hitTest(p.x, p.y))
         }
     }
@@ -635,6 +432,30 @@ Rectangle {
         }
     }
 
+    // theme switcher in the bottom-right corner (taps are handled by the main TapHandler above)
+    Rectangle {
+        id: themeButton
+        opacity: (themeHover.hovered ? 0.95 : 0.6) * (1 - 0.85 * root.space)
+        anchors.right: parent.right
+        anchors.bottom: parent.bottom
+        anchors.margins: 24
+        height: 34
+        width: themeLabel.implicitWidth + 32
+        radius: height / 2
+        color: "#c71d1632"
+        border.width: 1
+        border.color: "#40fff1d6"
+        Behavior on opacity { NumberAnimation { duration: 140 } }
+        HoverHandler { id: themeHover; cursorShape: Qt.PointingHandCursor }
+        Text {
+            id: themeLabel
+            anchors.centerIn: parent
+            text: "\u25b4\u25be  " + (root.system ? root.system.title : "").toUpperCase()
+            color: "#fff1d6"
+            font.pixelSize: 12; font.letterSpacing: 2
+        }
+    }
+
     // fade in from black on lock, fade out to black before unlocking
     Rectangle {
         id: veil
@@ -676,7 +497,27 @@ Rectangle {
             ScriptAction { script: introZoom.restart() }
         }
     }
+    SequentialAnimation {
+        id: themeAnim
+        ScriptAction { script: { novaAnim.stop(); fadeIn.stop(); introZoom.stop() } }
+        NumberAnimation { target: veil; property: "opacity"; to: 1; duration: 220; easing.type: Easing.InQuad }
+        ScriptAction {
+            script: {
+                novaAnim.stop()                              // in case the nova timer fired during the fade
+                root.resetNova()
+                root.hovered = -1
+                root.selected = -1
+                zoomAnim.stop()
+                cam.z = root.homeZ
+                root.theme = root.nextTheme
+                novaTimer.restart()                          // a new theme gets a full 22 minutes before its supernova
+            }
+        }
+        PauseAnimation { duration: 120 }                     // the new theme's first (heavy) frame happens under the veil
+        NumberAnimation { target: veil; property: "opacity"; to: 0; duration: 700; easing.type: Easing.OutCubic }
+    }
     Timer {
+        id: novaTimer
         interval: root.novaInterval
         running: root.sceneReady && !root.unlocking
         repeat: true
@@ -698,7 +539,7 @@ Rectangle {
             }
         }
     }
-    onUnlockingChanged: if (unlocking) { novaAnim.stop(); resetNova(); fadeIn.stop(); fadeOut.start() }
+    onUnlockingChanged: if (unlocking) { novaAnim.stop(); themeAnim.stop(); resetNova(); fadeIn.stop(); fadeOut.start() }
 
     Keys.onPressed: event => {
         if (root.busy || root.unlocking) return
@@ -709,6 +550,8 @@ Rectangle {
         } else if (event.key === Qt.Key_Escape) {
             if (root.selected !== -1) root.select(root.selected)   // Esc first leaves the zoom ...
             else password = ""                                     // ... and otherwise clears the password
+        } else if ((event.key === Qt.Key_Up || event.key === Qt.Key_Down) && password.length === 0) {
+            root.switchTheme(event.key === Qt.Key_Up ? 1 : -1)   // only with an empty password, so typing can never trigger it
         } else if (event.text.length === 1 && event.text >= " ") {
             root.edited()
             password += event.text

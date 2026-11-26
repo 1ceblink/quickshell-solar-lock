@@ -7,6 +7,7 @@ clock; hover a planet to learn about it, click to fly in on it, and type your pa
 
 - **Real-looking worlds:** photo textures for every planet, Earth's clouds and Moon, Saturn's rings, an asteroid belt and sharp dashed orbits
 - **Interactive:** hover a planet, the Moon or the Sun for a description card, click to zoom in, scroll to zoom
+- **Two themes:** the real Solar System, or a fan-made *Hearthian System* inspired by the game Outer Wilds (see [Themes](#themes))
 - **Supernova:** every 22 minutes of being locked the textured Sun slowly shrinks into a small white sphere, turns blue and swells in a growing glow, then the whole screen blows out white and fades to black before everything fades back in
 - **Polished:** fade in on lock, fade out on unlock, clock and date, a password pill with dots
 - **Safe fallback:** if the lock fails to start or crashes, `hyprlock` takes over (Hyprland)
@@ -137,12 +138,12 @@ package `org.kde.plasma.desktop`. Plasma only serves files inside a package, and
 hides the system one completely, so the script:
 
 - copies `/usr/share/plasma/shells/org.kde.plasma.desktop` to `~/.local/share/plasma/shells/` and replaces only
-  `contents/lockscreen/` with `kde/lockscreen/LockScreen.qml` plus symlinks to `Scene.qml` and `textures/`.
+  `contents/lockscreen/` with `kde/lockscreen/LockScreen.qml` plus symlinks to `Scene.qml`, the theme files and `textures/`.
   Everything else is identical, so the desktop, panels and widgets are unaffected;
 - installs `~/.config/plasma-workspace/env/solar-lock-kde.sh`, which rebuilds that copy from the current system
   package at every login, so a Plasma update never leaves a stale copy behind.
 
-Because `Scene.qml` and `textures/` are symlinks, updating this repository updates the KDE lock too. Only a
+Because `Scene.qml`, the theme files and `textures/` are symlinks, updating this repository updates the KDE lock too. Only a
 change to `kde/lockscreen/LockScreen.qml` needs `bin/install-kde` again (or a re-login).
 
 Compared with the stock Plasma lockscreen you lose the Sleep / Switch User buttons, media controls, the
@@ -156,6 +157,7 @@ fallback lockscreen and the session stays locked.
 | Hover a planet, the Moon or the Sun | The body glows softly in its own colour and a card shows its name, orbit and a short description |
 | Click a planet, the Moon or the Sun | The camera glides in on it, and its description card appears once the zoom has finished; click it again, or empty space, to zoom back out |
 | Scroll | Zoom in or out |
+| Up / Down (password empty) or the button in the bottom-right corner | Switch theme (see [Themes](#themes)) |
 | Type | Dots appear in the pill (the password itself is never shown) |
 | Backspace / Ctrl+Backspace | Delete one character / clear everything |
 | Esc | Zoom back out when zoomed in on a planet, otherwise clear the password |
@@ -169,13 +171,32 @@ Every **22 minutes of being locked** the Sun goes supernova.
 
 The timer counts time spent locked and starts over every time you lock, so a short lock never sees it. Unlocking while it plays cancels it. Change the interval with `novaInterval` in `Scene.qml` (milliseconds, default `22 * 60 * 1000`).
 
+## Themes
+
+| Theme | What you see |
+| --- | --- |
+| **Solar System** (`solar`) | The real planets with photo textures, Earth's Moon and the asteroid belt |
+| **Hearthian System** (`hearthian`) | A fan theme inspired by Outer Wilds: the Sun Station, the Hourglass Twins pouring sand between them, Timber Hearth and the Attlerock, Brittle Hollow with its black hole and Hollow's Lantern, Giant's Deep with its cyclones and the Orbital Probe Cannon, Dark Bramble, the Interloper on its stretched orbit, and the Quantum Moon |
+
+Press **Up** or **Down** while the password field is empty, or click the button in the bottom-right corner, to
+switch. Once you have typed a character the arrows do nothing, so they can never get in the way of a password.
+A switch lasts until you unlock; the theme shown when the lock starts is `theme` in `Scene.qml`.
+
+The **Quantum Moon** behaves as it does in the game: it only moves while nobody is looking. When it is off
+screen (you zoomed in somewhere else), hidden behind a nearer body, or the screen is dark (the fade-in, a theme
+switch, after the supernova), it jumps to an orbit around another world. While you hover or select it, it stays put.
+
+The Hearthian theme is built only from simple 3D shapes; it uses no art, textures or text from the game.
+Outer Wilds is a game by Mobius Digital; this project is not affiliated with it.
+
 ## Customising
 
-Almost everything is in `Scene.qml`:
+Almost everything is in `Scene.qml` and the theme files (`SolarSystem.qml`, `HearthianSystem.qml`):
 
 | What | Where |
 | --- | --- |
-| Planet names, orbit radius, size, tilt, spin speed and description text | the `planets` list at the top |
+| The theme shown when the lock starts (`"solar"` or `"hearthian"`) | `theme` in `Scene.qml` |
+| Planet names, orbit radius, size, tilt, spin speed and description text | the `planets` list at the top of each theme file |
 | How far the camera sits (increase it to shrink the whole system) | `homeZ` |
 | Fade durations | `fadeIn` and `fadeOut` |
 | How often the supernova happens (milliseconds, default `22 * 60 * 1000`; it counts time spent locked and starts over each time you lock) | `novaInterval` |
@@ -212,7 +233,9 @@ While you experiment, use `dev.qml` rather than the real lock.
 ```text
 LICENSE                         MIT
 shell.qml                       the real lock (Hyprland and other compositors)
-Scene.qml                       the 3D scene, clock, password pill and all interaction (shared by every desktop)
+Scene.qml                       the Sun, supernova, clock, password pill and all interaction (shared by every desktop)
+SolarSystem.qml                 the Solar System theme: planets, Moon, asteroid belt
+HearthianSystem.qml             the Hearthian System theme (inspired by Outer Wilds), including the Quantum Moon
 dev.qml                         windowed preview, no locking
 bin/lock-solar                  launcher with the hyprlock fallback
 bin/preview                     opens the scene in a window, nothing is locked
