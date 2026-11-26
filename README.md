@@ -44,6 +44,11 @@ cd ~/.local/share/quickshell-solar-lock
 python3 tools/fetch_textures.py
 ```
 
+> **The texture step is required.** The planet textures are not stored in this repository (they are CC BY 4.0
+> and are downloaded instead). Without running `tools/fetch_textures.py` the planets render as untextured
+> blobs, and `bin/lock-solar` will refuse to start the scene and use `hyprlock` instead. The script needs
+> an internet connection, about 7 MB of disk, and `python-pillow`.
+
 ### Preview without locking
 
 ```sh
