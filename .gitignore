@@ -2,3 +2,11 @@
 textures/*
 !textures/.gitkeep
 __pycache__/
+
+# makepkg build output (packaging/arch)
+packaging/arch/src/
+packaging/arch/pkg/
+packaging/arch/*.pkg.tar.*
+packaging/arch/*.jpg
+packaging/arch/*.png
+packaging/arch/quickshell-solar-lock/

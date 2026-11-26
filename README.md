@@ -6,7 +6,7 @@ clock; hover a planet to learn about it, click to fly in on it, and type your pa
 ![Solar Lock: the orbiting solar system with a clock, then a flight in on Earth and Saturn with their description cards](docs/solar-lock.gif)
 
 - **Real-looking worlds:** photo textures for every planet, Earth's clouds and Moon, Saturn's rings, an asteroid belt and sharp dashed orbits
-- **Interactive:** hover for a description card, click to zoom in, scroll to zoom
+- **Interactive:** hover a planet, the Moon or the Sun for a description card, click to zoom in, scroll to zoom
 - **Supernova:** every 22 minutes of being locked the textured Sun slowly shrinks into a small white sphere, turns blue and swells in a growing glow, then the whole screen blows out white and fades to black before everything fades back in
 - **Polished:** fade in on lock, fade out on unlock, clock and date, a password pill with dots
 - **Safe fallback:** if the lock fails to start or crashes, `hyprlock` takes over (Hyprland)
@@ -19,7 +19,34 @@ clock; hover a planet to learn about it, click to fly in on it, and type your pa
 > **Use at your own risk.** This is a hobby lockscreen, not a security-audited one. Test it with a spare TTY
 > logged in before you rely on it (see [Safety and recovery](#safety-and-recovery)).
 
-## Quick start
+## Install on Arch Linux (package)
+
+The easiest way: a package installs everything under `/usr/share/quickshell-solar-lock`, pulls in the dependencies,
+downloads the textures (checked against their checksums) and gives you ready-made commands.
+
+```sh
+# from the AUR, once it is published there
+yay -S quickshell-solar-lock-git
+
+# or build it from a checkout of this repository (a local build uses the committed files)
+git clone https://github.com/1ceblink/quickshell-solar-lock.git
+cd quickshell-solar-lock/packaging/arch
+SOLAR_LOCK_REPO=file://$(git rev-parse --show-toplevel) makepkg -si
+```
+
+| Command | What it does |
+| --- | --- |
+| `solar-lock` | Locks the screen (falls back to `hyprlock` if the lock fails to start) |
+| `solar-lock-preview` | Opens the scene in a window; nothing is locked |
+| `solar-lock-install-kde` / `solar-lock-uninstall-kde` | Set up or remove the [KDE Plasma](#kde-plasma) lockscreen |
+
+Then bind your lock key to `solar-lock` (see [Hyprland setup](#hyprland-and-other-wayland-compositors); the
+package installs the command into your `PATH`, so use `solar-lock` instead of the long path in those snippets) and keep a
+spare TTY logged in the first time ([Safety and recovery](#safety-and-recovery)). To update, rebuild the package.
+
+The rest of this page (manual install) is for other distributions or if you prefer to run it from a clone.
+
+## Quick start (manual install)
 
 **1. Install the dependencies** (Arch package names):
 
@@ -126,23 +153,19 @@ fallback lockscreen and the session stays locked.
 
 | Action | Result |
 | --- | --- |
-| Hover a planet or the Sun | The body glows softly in its own colour and a card shows its name, orbit and a short description |
-| Click a planet or the Sun | The camera glides in on it and the card stays visible; click it again, or empty space, to zoom back out |
+| Hover a planet, the Moon or the Sun | The body glows softly in its own colour and a card shows its name, orbit and a short description |
+| Click a planet, the Moon or the Sun | The camera glides in on it, and its description card appears once the zoom has finished; click it again, or empty space, to zoom back out |
 | Scroll | Zoom in or out |
 | Type | Dots appear in the pill (the password itself is never shown) |
-| Backspace / Esc | Delete one character / clear everything |
+| Backspace / Ctrl+Backspace | Delete one character / clear everything |
+| Esc | Zoom back out when zoomed in on a planet, otherwise clear the password |
 | Enter | Submit. A wrong password shows "wrong password" in red; typing again clears it |
 
 ## The supernova
 
 ![The Sun shrinks into a small white sphere, turns blue and swells, then the screen blows out white and fades to black before everything fades back in](docs/supernova.gif)
 
-Every **22 minutes of being locked** the Sun goes supernova, in this order:
-
-1. the textured Sun slowly shrinks and its pattern fades into a small white sphere;
-2. it ignites blue and swells slowly in a growing glow, its core turning white-hot;
-3. the whole screen blows out white and fades to black (the planets are never touched);
-4. after a short pause everything fades back in.
+Every **22 minutes of being locked** the Sun goes supernova.
 
 The timer counts time spent locked and starts over every time you lock, so a short lock never sees it. Unlocking while it plays cancels it. Change the interval with `novaInterval` in `Scene.qml` (milliseconds, default `22 * 60 * 1000`).
 
@@ -187,13 +210,16 @@ While you experiment, use `dev.qml` rather than the real lock.
 ## Repository layout
 
 ```text
+LICENSE                         MIT
 shell.qml                       the real lock (Hyprland and other compositors)
 Scene.qml                       the 3D scene, clock, password pill and all interaction (shared by every desktop)
 dev.qml                         windowed preview, no locking
 bin/lock-solar                  launcher with the hyprlock fallback
+bin/preview                     opens the scene in a window, nothing is locked
 bin/install-kde, uninstall-kde  KDE Plasma setup and removal
 kde/lockscreen/LockScreen.qml   the KDE greeter UI that hosts Scene.qml
 tools/fetch_textures.py         downloads the textures and builds the ring and bump maps
+packaging/arch/PKGBUILD         Arch Linux package (also the base for the AUR package)
 textures/                       created by the script, not committed
 ```
 
@@ -204,5 +230,4 @@ textures/                       created by the script, not committed
   `tools/fetch_textures.py` and are not redistributed here. Please credit them if you share screenshots or videos.
 - KDE Plasma support by Eduard Gevorgyan.
 - Built with [Quickshell](https://quickshell.org) and [Qt](https://www.qt.io).
-- No licence has been chosen for this repository yet. `kde/lockscreen/LockScreen.qml` carries a
-  `GPL-2.0-or-later` header because it follows KDE's own lockscreen, which affects which licence the project can use.
+- Licence: [MIT](LICENSE), except `kde/lockscreen/LockScreen.qml`, which keeps its `GPL-2.0-or-later` header because it follows KDE's own lockscreen. The planet textures are not part of this repository; they are CC BY 4.0 (see above).
