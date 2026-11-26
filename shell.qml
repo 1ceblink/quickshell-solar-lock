@@ -18,6 +18,7 @@ ShellRoot {
         property string pending: ""
         onPamMessage: if (responseRequired) respond(pending)
         onCompleted: result => {
+            pending = ""                  // the password is not kept once PAM has finished
             root.busy = false
             if (result === PamResult.Success) {
                 root.unlocking = true        // Scene fades out, then emits unlocked()

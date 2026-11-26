@@ -16,9 +16,6 @@ clock; hover a planet to learn about it, click to fly in on it, and type your pa
 | **Hyprland**, Sway and other compositors with `ext-session-lock-v1` | [Quickshell](https://quickshell.org) draws the lock and checks the password through PAM | [Hyprland setup](#hyprland-and-other-wayland-compositors) |
 | **KDE Plasma** | The same scene runs inside KDE's own screen locker | [KDE Plasma setup](#kde-plasma) |
 
-> **Use at your own risk.** This is a hobby lockscreen, not a security-audited one. Test it with a spare TTY
-> logged in before you rely on it (see [Safety and recovery](#safety-and-recovery)).
-
 ## Quick start
 
 **1. Install the dependencies** (Arch package names):
@@ -164,7 +161,8 @@ While you experiment, use `dev.qml` rather than the real lock.
 ## Safety and recovery
 
 - **Keep a TTY open the first time.** Press `Ctrl+Alt+F3`, log in, then return with your session's TTY key
-  (usually `Ctrl+Alt+F1` or `F2`). From the TTY, `pkill qs` stops a stuck lock.
+  (usually `Ctrl+Alt+F1` or `F2`). From the TTY, `pkill qs` stops a stuck lock. **Log out of that TTY when you are
+  done testing:** a TTY left logged in lets anyone at the keyboard get around any screen lock.
 - **If the lock crashes**, Hyprland keeps the session locked and shows a red screen. With
   `allow_session_lock_restore` on, `lock-solar` starts `hyprlock` so you can unlock normally.
 - **Memory:** the lock uses roughly 240 MB while it is running (most of it texture memory) and exits completely
@@ -179,6 +177,22 @@ While you experiment, use `dev.qml` rather than the real lock.
 | Warning about a Qt version mismatch | Update or rebuild the `quickshell` package |
 | The password is always rejected | Check the PAM service name in `shell.qml` (see Customising) |
 | The clock uses a plain font | Install the Scenesa font, or set another `font.family` in the clock block |
+
+## Security notes
+
+- **The compositor does the locking.** On Hyprland and other `ext-session-lock-v1` compositors the compositor itself
+  hides every other window and sends keyboard and mouse input only to the lock while it is active (on KDE Plasma its
+  own screen locker does this). If the lock program crashes, the session stays locked.
+- **The password is checked by PAM**, with the same service as `hyprlock` and your login. The scene never writes it to
+  a log and drops it as soon as PAM has answered.
+- **Failures never leave the screen unlocked.** If the lock fails to start, fails to load or crashes, `lock-solar`
+  uses `hyprlock` instead, and a leftover lock process cannot turn the lock key into a silent no-op.
+- **Downloads are verified.** `tools/fetch_textures.py` checks every texture against a known SHA-256 sum and refuses
+  anything that does not match.
+- **What no screen lock can do:** it protects a running session from someone at the keyboard. It does not protect
+  against other TTYs left logged in, physical attacks on the machine, or code already running as your user. On KDE,
+  `bin/install-kde` runs a small script from this repository's folder at every login, so keep that folder
+  writable only by you.
 
 ## Repository layout
 
@@ -201,4 +215,4 @@ textures/                       created by the script, not committed
   licensed [CC BY 4.0](https://creativecommons.org/licenses/by/4.0/). They are downloaded by
   `tools/fetch_textures.py` and are not redistributed here. Please credit them if you share screenshots or videos.
 - Built with [Quickshell](https://quickshell.org) and [Qt](https://www.qt.io).
-- Licence: [MIT](LICENSE), except `kde/lockscreen/LockScreen.qml`, which keeps its `GPL-2.0-or-later` header because it follows KDE's own lockscreen. The planet textures are not part of this repository; they are CC BY 4.0 (see above).
+- Licence: [MIT](LICENSE), except `kde/lockscreen/LockScreen.qml`, which keeps its `GPL-2.0-or-later` header because it follows KDE's own lockscreen.
