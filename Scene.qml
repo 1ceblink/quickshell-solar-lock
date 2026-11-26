@@ -541,7 +541,8 @@ Rectangle {
     }
     onUnlockingChanged: if (unlocking) { novaAnim.stop(); themeAnim.stop(); resetNova(); fadeIn.stop(); fadeOut.start() }
 
-    Keys.onPressed: event => {
+    Keys.onPressed: event => handleKey(event)
+    function handleKey(event) {                  // also called by the blank lock surfaces of other screens (shell.qml)
         if (root.busy || root.unlocking) return
         if (event.key === Qt.Key_Return || event.key === Qt.Key_Enter) {
             if (password.length > 0) { root.submit(password); password = "" }

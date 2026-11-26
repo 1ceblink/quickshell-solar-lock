@@ -195,7 +195,8 @@ cyclones, Dark Bramble's fog, the black hole, the comet's tail) are drawn by the
 missing, simple shapes stand in.
 
 If you own the game and extracted models from **your own copy** into `models/ow/` (one `.glb` per body, centred,
-Y up, radius 1, named like the generated ones, e.g. `timber_hearth.glb`), those are used instead. `models/` is
+Y up, radius 1, named like the generated ones, e.g. `timber_hearth.glb`), those are used instead; `sun_station.glb` and
+`orbital_probe_cannon.glb` replace those two bodies' simple shapes. `models/` is
 git-ignored: models from the game belong to Mobius Digital, so never commit or share them.
 
 The theme uses no art, textures or text from the game. Outer Wilds is a game by Mobius Digital; this project is
@@ -222,6 +223,11 @@ Almost everything is in `Scene.qml` and the theme files (`SolarSystem.qml`, `Hea
 
 Two settings live in `shell.qml`: `config: "hyprlock"` is the PAM service name (use `"login"` if you do not
 have `hyprlock`), and `settings.watchFiles: false` must stay off (see below).
+
+**Several monitors:** set `SOLAR_LOCK_SCREEN` to part of one screen's output name or model (as `hyprctl monitors`
+shows it, e.g. `SOLAR_LOCK_SCREEN=HDMI-A-1` or `SOLAR_LOCK_SCREEN=G24-20` in front of `lock-solar`) to show the scene
+only there. The other screens stay black, and typing on them still goes to the password. If no screen matches,
+every screen shows the scene.
 
 While you experiment, use `dev.qml` rather than the real lock.
 

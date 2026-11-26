@@ -177,10 +177,14 @@ Node {
                 eulerRotation.z: 90                               // tilt in its own node, spin inside it (Qt applies yaw last)
                 Node {
                     NumberAnimation on eulerRotation.y { from: 0; to: 360; duration: 7000; loops: Animation.Infinite }
-                    Box { size: Qt.vector3d(0.22, 0.9, 0.22); col: "#a39a8a" }
-                    Box { size: Qt.vector3d(0.7, 0.05, 0.3); col: "#5c6b8c"; x: 0.5 }
-                    Box { size: Qt.vector3d(0.7, 0.05, 0.3); col: "#5c6b8c"; x: -0.5 }
-                    Ball { r: 0.16; col: "#ffd08a"; shine: 0.8; y: 0.5 }
+                    Mesh { id: stationMesh; name: "sun_station"; r: 0.55 }
+                    Node {
+                        visible: !stationMesh.ok
+                        Box { size: Qt.vector3d(0.22, 0.9, 0.22); col: "#a39a8a" }
+                        Box { size: Qt.vector3d(0.7, 0.05, 0.3); col: "#5c6b8c"; x: 0.5 }
+                        Box { size: Qt.vector3d(0.7, 0.05, 0.3); col: "#5c6b8c"; x: -0.5 }
+                        Ball { r: 0.16; col: "#ffd08a"; shine: 0.8; y: 0.5 }
+                    }
                 }
             }
         }
@@ -200,8 +204,8 @@ Node {
                 NumberAnimation on eulerRotation.y { from: 0; to: 360; duration: 14000; loops: Animation.Infinite }
                 Mesh { id: ashMesh; name: "ash_twin"; r: 0.9; x: 1.5 }      // Ash Twin
                 Mesh { id: emberMesh; name: "ember_twin"; r: 0.95; x: -1.5 } // Ember Twin
-                Ball { visible: !ashMesh.ok; r: 0.9; col: "#d9a066"; x: 1.5 }
-                Ball { visible: !emberMesh.ok; r: 0.95; col: "#b35a3c"; x: -1.5 }
+                Ball { r: ashMesh.ok ? 0.68 : 0.9; col: "#d9a066"; x: 1.5 }        // the real models lack the sand: keep a smaller ball
+                Ball { r: emberMesh.ok ? 0.55 : 0.95; col: emberMesh.ok ? "#d9a066" : "#b35a3c"; x: -1.5 }
                 Model {                                           // the sand column
                     source: "#Cylinder"
                     pickable: false
@@ -346,7 +350,7 @@ Node {
                 Mesh { id: deepMesh; name: "giants_deep"; r: 2.7 }
                 Ball { visible: !deepMesh.ok; r: 2.7; col: "#2f8f8a" }
                 Repeater3D {                                      // cyclones: spinning white arms on the surface
-                    model: 6
+                    model: deepMesh.ok && deepMesh.stage === 0 ? 0 : 6   // under the real model's cloud deck they show as dark smudges
                     Node {
                         required property int index
                         eulerRotation: Qt.vector3d(Math.acos(1 - 2 * (index + 0.5) / 6) * 180 / Math.PI, index * 137.5, 0)
@@ -373,7 +377,9 @@ Node {
                     id: cannon
                     scene: system.scene; idx: 7; r: 0.5; col: "#9aa6c4"
                     x: 4.6
+                    Mesh { id: cannonMesh; name: "orbital_probe_cannon"; r: 0.7; eulerRotation: Qt.vector3d(20, 0, 70) }
                     Node {
+                        visible: !cannonMesh.ok
                         eulerRotation: Qt.vector3d(20, 0, 70)
                         Box { size: Qt.vector3d(0.4, 0.4, 0.4); col: "#6e6a73" }
                         Model {
@@ -445,12 +451,12 @@ Node {
             }
             readonly property real dist: position.length()
             position: Qt.vector3d(31 * Math.cos(ea) - 25.9, 0, 17 * Math.sin(ea))
-            Mesh { id: cometMesh; name: "interloper"; r: 0.6 }
             Ball { visible: !cometMesh.ok; r: 0.6; col: "#cfe8f2"; shine: 0.15 }
             Node {                                                // the tail points away from the Sun and grows near it
                 id: tail
                 eulerRotation.y: -Math.atan2(comet.position.z, comet.position.x) * 180 / Math.PI
                 readonly property real len: Math.max(1, Math.min(8, 60 / comet.dist))
+                Mesh { id: cometMesh; name: "interloper"; r: 0.6 }   // its icy spikes point along +X: away from the Sun
                 Repeater3D {
                     model: 3
                     Model {
