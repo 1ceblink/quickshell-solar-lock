@@ -1,0 +1,230 @@
+{
+  "note": "Models are centred on the body, Y up, scaled so original_radius = 1.0. scene_position is in glTF scene coordinates. Spin axes were not extracted. Personal use only.",
+  "bodies": [
+    {
+      "file": "TimberHearth.glb",
+      "thumbnail": "thumbnails/TimberHearth.png",
+      "display_name": "Timber Hearth",
+      "original_radius": 270.14,
+      "max_extent_in_model_units": 1.257,
+      "triangles": 59776,
+      "spin_axis": null,
+      "scene_position": [
+        -1492.2,
+        0.0,
+        -8462.5
+      ],
+      "missing": [
+        "atmosphere / fog glow",
+        "water (lakes, geyser pools)",
+        "geyser jets",
+        "shader detail overlays (grass, dirt)"
+      ]
+    },
+    {
+      "file": "TimberMoon.glb",
+      "thumbnail": "thumbnails/TimberMoon.png",
+      "display_name": "Attlerock",
+      "original_radius": 76.92,
+      "max_extent_in_model_units": 1.201,
+      "triangles": 14999,
+      "spin_axis": null,
+      "scene_position": [
+        -2378.5,
+        0.0,
+        -8306.3
+      ],
+      "missing": [
+        "atmosphere / fog glow"
+      ]
+    },
+    {
+      "file": "BrittleHollow.glb",
+      "thumbnail": "thumbnails/BrittleHollow.png",
+      "display_name": "Brittle Hollow",
+      "original_radius": 306.82,
+      "max_extent_in_model_units": 1.309,
+      "triangles": 334280,
+      "spin_axis": null,
+      "scene_position": [
+        -11513.3,
+        0.0,
+        -2030.1
+      ],
+      "missing": [
+        "black hole",
+        "atmosphere / fog glow",
+        "hanging city and under-crust layer (left out: hidden from space)",
+        "undersides of crust slabs (removed)"
+      ]
+    },
+    {
+      "file": "VolcanicMoon.glb",
+      "thumbnail": "thumbnails/VolcanicMoon.png",
+      "display_name": "Hollow's Lantern",
+      "original_radius": 114.4,
+      "max_extent_in_model_units": 1.273,
+      "triangles": 14981,
+      "spin_axis": null,
+      "scene_position": [
+        -12498.1,
+        0.0,
+        -2203.7
+      ],
+      "missing": [
+        "animated lava flow (lava sphere is a flat baked approximation)",
+        "erupting lava meteors",
+        "smoke"
+      ]
+    },
+    {
+      "file": "GiantsDeep.glb",
+      "thumbnail": "thumbnails/GiantsDeep.png",
+      "display_name": "Giant's Deep",
+      "original_radius": 949.15,
+      "max_extent_in_model_units": 1.001,
+      "triangles": 12500,
+      "spin_axis": null,
+      "scene_position": [
+        -3421.7,
+        0.0,
+        -16097.9
+      ],
+      "missing": [
+        "ocean shader, islands and tornadoes (below the clouds)",
+        "cloud animation and lightning",
+        "atmosphere / fog glow",
+        "cloud colours are an approximation of the original shader"
+      ]
+    },
+    {
+      "file": "OrbitalProbeCannon.glb",
+      "thumbnail": "thumbnails/OrbitalProbeCannon.png",
+      "display_name": "Orbital Probe Cannon",
+      "original_radius": 339.64,
+      "max_extent_in_model_units": 1.0,
+      "triangles": 14997,
+      "spin_axis": null,
+      "scene_position": [
+        -2572.4,
+        37.8,
+        -15263.7
+      ],
+      "missing": [
+        "glows and electrical effects",
+        "the three pieces sit as placed at scene start"
+      ]
+    },
+    {
+      "file": "DarkBramble.glb",
+      "thumbnail": "thumbnails/DarkBramble.png",
+      "display_name": "Dark Bramble",
+      "original_radius": 781.78,
+      "max_extent_in_model_units": 1.222,
+      "triangles": 51444,
+      "spin_axis": null,
+      "scene_position": [
+        3473.0,
+        0.0,
+        19696.2
+      ],
+      "missing": [
+        "volumetric fog and inner light glow (important for the look)",
+        "emission is only partly baked in"
+      ]
+    },
+    {
+      "file": "TowerTwin.glb",
+      "thumbnail": "thumbnails/TowerTwin.png",
+      "display_name": "Ash Twin",
+      "original_radius": 138.03,
+      "max_extent_in_model_units": 1.252,
+      "triangles": 36814,
+      "spin_axis": null,
+      "scene_position": [
+        2663.1,
+        0.0,
+        4239.2
+      ],
+      "missing": [
+        "sand ball covering the planet at loop start (add a sphere in QML)",
+        "sand column",
+        "atmosphere / fog glow"
+      ]
+    },
+    {
+      "file": "CaveTwin.glb",
+      "thumbnail": "thumbnails/CaveTwin.png",
+      "display_name": "Ember Twin",
+      "original_radius": 167.18,
+      "max_extent_in_model_units": 1.313,
+      "triangles": 59999,
+      "spin_axis": null,
+      "scene_position": [
+        3072.7,
+        0.0,
+        3952.4
+      ],
+      "missing": [
+        "rising sand (add a sphere in QML)",
+        "sand column",
+        "atmosphere / fog glow"
+      ]
+    },
+    {
+      "file": "Comet.glb",
+      "thumbnail": "thumbnails/Comet.png",
+      "display_name": "The Interloper",
+      "original_radius": 218.01,
+      "max_extent_in_model_units": 1.0,
+      "triangles": 14999,
+      "spin_axis": null,
+      "scene_position": [
+        24100.0,
+        0.0,
+        0.0
+      ],
+      "missing": [
+        "ice tail / particle trail",
+        "ice shine; snow blend is approximated"
+      ]
+    },
+    {
+      "file": "QuantumMoon.glb",
+      "thumbnail": "thumbnails/QuantumMoon.png",
+      "display_name": "Quantum Moon",
+      "original_radius": 109.9,
+      "max_extent_in_model_units": 1.001,
+      "triangles": 12500,
+      "spin_axis": null,
+      "scene_position": [
+        8058.0,
+        0.0,
+        -6878.7
+      ],
+      "missing": [
+        "cloud animation",
+        "atmosphere / fog glow",
+        "cloud colours are an approximation of the original shader"
+      ]
+    },
+    {
+      "file": "SunStation.glb",
+      "thumbnail": "thumbnails/SunStation.png",
+      "display_name": "Sun Station",
+      "original_radius": 193.79,
+      "max_extent_in_model_units": 1.0,
+      "triangles": 14999,
+      "spin_axis": null,
+      "scene_position": [
+        0.0,
+        7.9,
+        -2219.8
+      ],
+      "missing": [
+        "window glow only partly baked in",
+        "warp effects"
+      ]
+    }
+  ]
+}
