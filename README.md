@@ -132,6 +132,7 @@ fallback lockscreen and the session stays locked.
 | Scroll | Zoom in or out |
 | Up / Down (password empty) or the button in the bottom-right corner | Switch theme (see [Themes](#themes)) |
 | Type | Dots appear in the pill (the password itself is never shown) |
+| Caps Lock, layout | A small chip above the pill shows the active keyboard layout (`US`, `RU`, …) and an amber `CAPS LOCK` chip appears while it is on (Hyprland only: it reads them from `hyprctl`) |
 | Backspace / Ctrl+Backspace | Delete one character / clear everything |
 | Esc | Zoom back out when zoomed in on a planet, otherwise clear the password |
 | Enter | Submit. A wrong password shows "wrong password" in red; typing again clears it |

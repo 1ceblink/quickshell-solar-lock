@@ -10,6 +10,8 @@ Rectangle {
     property string password: ""
     property bool failed: false
     property bool busy: false
+    property bool capsLock: false      // set by the shell (empty/false where it cannot tell, e.g. KDE)
+    property string layoutCode: ""     // active keyboard layout, e.g. "US"
     property bool unlocking: false
     property int selected: -1          // -2 = Sun, -3 = the Moon, 0.. = the theme's bodies, -1 = none (overview)
 
@@ -390,6 +392,27 @@ Rectangle {
             color: "#fff1d6"; opacity: 0.7
             font.family: "Scenesa"
             font.pixelSize: 15; font.letterSpacing: 5
+        }
+    }
+
+    // keyboard state above the pill: the layout, and a warning while Caps Lock is on
+    Row {
+        anchors.bottom: pill.top
+        anchors.bottomMargin: 10
+        anchors.horizontalCenter: parent.horizontalCenter
+        spacing: 8
+        opacity: 1 - root.space
+        Rectangle {
+            visible: root.layoutCode !== ""
+            height: 22; width: layoutText.width + 18; radius: height / 2
+            color: "#99120e22"; border.width: 1; border.color: "#40fff1d6"
+            Text { id: layoutText; anchors.centerIn: parent; text: root.layoutCode; color: "#fff1d6"; opacity: 0.8; font.pixelSize: 11; font.letterSpacing: 2 }
+        }
+        Rectangle {
+            visible: root.capsLock
+            height: 22; width: capsText.width + 18; radius: height / 2
+            color: "#99120e22"; border.width: 1; border.color: "#99f0b45a"
+            Text { id: capsText; anchors.centerIn: parent; text: "CAPS LOCK"; color: "#f0b45a"; font.pixelSize: 11; font.letterSpacing: 2 }
         }
     }
 

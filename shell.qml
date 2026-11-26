@@ -1,6 +1,7 @@
 // The real lockscreen. Run: qs -p ~/.config/quickshell/solar-lock/shell.qml
 import Quickshell
 import Quickshell.Wayland
+import Quickshell.Io
 import Quickshell.Services.Pam
 import QtQuick
 
@@ -11,6 +12,29 @@ ShellRoot {
     property bool failed: false
     property bool busy: false
     property bool unlocking: false
+    property bool capsLock: false
+    property string layoutCode: ""
+
+    // Caps Lock and the active keyboard layout, from Hyprland (nothing is shown if hyprctl is unavailable)
+    Process {
+        id: kbProbe
+        command: ["hyprctl", "-j", "devices"]
+        stdout: StdioCollector {
+            onStreamFinished: {
+                try {
+                    var kbs = JSON.parse(text).keyboards
+                    var main = kbs.find(k => k.main) || kbs[0]
+                    root.capsLock = kbs.some(k => k.capsLock)
+                    var codes = main.layout.split(",")
+                    root.layoutCode = (codes[main.active_layout_index] || "").trim().toUpperCase()
+                } catch (e) {}
+            }
+        }
+    }
+    Timer {
+        interval: 400; running: true; repeat: true; triggeredOnStart: true
+        onTriggered: if (!kbProbe.running) kbProbe.running = true
+    }
 
     PamContext {
         id: pam
@@ -66,6 +90,8 @@ ShellRoot {
         Scene {
             anchors.fill: parent
             failed: root.failed
+            capsLock: root.capsLock
+            layoutCode: root.layoutCode
             busy: root.busy
             unlocking: root.unlocking
             onUnlocked: {
