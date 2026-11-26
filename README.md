@@ -200,6 +200,7 @@ While you experiment, use `dev.qml` rather than the real lock.
 LICENSE                         MIT
 shell.qml                       the real lock (Hyprland and other compositors)
 Scene.qml                       the 3D scene, clock, password pill and all interaction (shared by every desktop)
+shaders/earth_night.frag        Earth's city lights, shown only on the night side
 dev.qml                         windowed preview, no locking
 bin/lock-solar                  launcher with the hyprlock fallback
 bin/preview                     opens the scene in a window, nothing is locked

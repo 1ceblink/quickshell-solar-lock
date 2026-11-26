@@ -54,6 +54,7 @@ mkdir "$NEW/contents/lockscreen"
 cp "$DIR/kde/lockscreen/LockScreen.qml" "$NEW/contents/lockscreen/LockScreen.qml"
 ln -s "$DIR/Scene.qml" "$NEW/contents/lockscreen/Scene.qml"
 ln -s "$DIR/textures" "$NEW/contents/lockscreen/textures"
+ln -s "$DIR/shaders" "$NEW/contents/lockscreen/shaders"
 echo "made by quickshell-solar-lock/bin/install-kde from $SYS; remove with bin/uninstall-kde" > "$NEW/$MARKER"
 chmod 755 "$NEW"
 

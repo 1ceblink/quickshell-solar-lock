@@ -64,7 +64,7 @@ Rectangle {
           desc: "The smallest planet and the closest to the Sun. A year here lasts just 88 days, yet a single day lasts 176 Earth days." },
         { name: "Venus",   dist: 10.5, size: 1.25, tex: "2k_venus_atmosphere.jpg", tilt: 177, spin: 200, year: 0.62, au: 0.72, color: "#e8c27c", atmo: "#ffe0a8", ao: 0.14,
           desc: "The hottest planet, around 465 \u00b0C under thick clouds of acid. It spins backwards, so the Sun rises in the west." },
-        { name: "Earth",   dist: 15,   size: 1.35, tex: "2k_earth_daymap.jpg", tilt: 23,  spin: 40,  year: 1.0,  au: 1.0,  color: "#3a8cbd", clouds: true, moon: true, atmo: "#8cc4ff", ao: 0.12,
+        { name: "Earth",   dist: 15,   size: 1.35, tex: "2k_earth_daymap.jpg", night: true, tilt: 23,  spin: 40,  year: 1.0,  au: 1.0,  color: "#3a8cbd", clouds: true, moon: true, atmo: "#8cc4ff", ao: 0.12,
           desc: "Home, and the only world known to host life. Oceans cover 71% of its surface, and the Moon keeps its tilt steady." },
         { name: "Mars",    dist: 19,   size: 1.0,  tex: "2k_mars.jpg", normal: "mars_n.png", tilt: 25,  spin: 41,  year: 1.88, au: 1.52, color: "#c9653c", atmo: "#ffa874", ao: 0.06,
           desc: "A cold, rusty desert with the tallest volcano in the system: Olympus Mons, about 22 km high." },
@@ -142,18 +142,13 @@ Rectangle {
         onTriggered: { var n = new Date(); if (Math.floor(n / 60000) !== Math.floor(clock.date / 60000)) clock.date = n }
     }
 
-    // sparse static starfield
-    Repeater {
-        model: 90
-        Rectangle {
-            x: Math.random() * root.width
-            y: Math.random() * root.height
-            width: Math.random() < 0.12 ? 2 : 1
-            height: width
-            radius: width / 2
-            color: "#fff1d6"
-            opacity: 0.12 + Math.random() * 0.4
-        }
+    // starry sky (Solar System Scope 2k_stars.jpg), cropped to fill the screen and faded out with the supernova
+    Image {
+        anchors.fill: parent
+        source: root.tex("2k_stars.jpg")
+        fillMode: Image.PreserveAspectCrop
+        asynchronous: true
+        opacity: 1 - root.space
     }
 
     View3D {
@@ -379,6 +374,27 @@ Rectangle {
                                 duration: Math.abs(orbit.modelData.spin) * 1000
                                 loops: Animation.Infinite
                             }
+                        }
+                        // earth: city lights, visible only on the night side (a small shader: it needs the Sun's direction)
+                        Model {
+                            visible: orbit.modelData.night === true
+                            readonly property real sc: orbit.modelData.size * 0.02015
+                            source: "#Sphere"
+                            scale: Qt.vector3d(sc, sc, sc)
+                            depthBias: 1   // same centre as the clouds: pin the draw order (lights first) so the blend can't flip
+                            pickable: false
+                            materials: CustomMaterial {
+                                sourceBlend: CustomMaterial.One
+                                destinationBlend: CustomMaterial.One   // additive: black adds nothing
+                                cullMode: Material.BackFaceCulling
+                                fragmentShader: Qt.resolvedUrl("shaders/earth_night.frag")
+                                property vector3d sunDir: origin.scenePosition.minus(body.scenePosition).normalized()
+                                property real brightness: 1.5
+                                property TextureInput nightMap: TextureInput {
+                                    texture: Texture { source: root.tex("2k_earth_nightmap.jpg"); generateMipmaps: true; mipFilter: Texture.Linear }
+                                }
+                            }
+                            NumberAnimation on eulerRotation.y { from: 0; to: 360; duration: orbit.modelData.spin * 1000; loops: Animation.Infinite }
                         }
                         // earth: clouds + thin atmosphere
                         Model {

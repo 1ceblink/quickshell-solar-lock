@@ -21,12 +21,14 @@ BASE = "https://www.solarsystemscope.com/textures/download/"
 FILES = [
     "2k_sun.jpg", "2k_mercury.jpg", "2k_venus_atmosphere.jpg", "2k_earth_daymap.jpg",
     "2k_earth_clouds.jpg", "2k_moon.jpg", "2k_mars.jpg", "2k_jupiter.jpg", "2k_saturn.jpg",
-    "2k_uranus.jpg", "2k_neptune.jpg", "2k_saturn_ring_alpha.png",
+    "2k_uranus.jpg", "2k_neptune.jpg", "2k_saturn_ring_alpha.png", "2k_stars.jpg",
+    "2k_earth_nightmap.jpg",
 ]
 
 
 SHA256 = {
     "2k_earth_clouds.jpg": "fffd7f68d41b37274822150e54a6ef605af1d3ec35624d9f628c3b896bfa42ed",
+    "2k_earth_nightmap.jpg": "c16fd1bc096ab91a5c5265c6ff9847c43f489f2e2ee790ccdbcbd03251cf3a5a",
     "2k_earth_daymap.jpg": "767ee1dc6eb3802699bfccf6f264880f8acd0b80de3191cd24984fe279b07b7c",
     "2k_jupiter.jpg": "b0f04d005350252636b0e3396fc592548cbd9e9126b269d32d5c6abd4b0e4f2b",
     "2k_mars.jpg": "2d187f3e77a98eaa8cea5f4cc722f633c122ef170b9e94ace6b5fb6cbc3f8e01",
@@ -35,6 +37,7 @@ SHA256 = {
     "2k_neptune.jpg": "cb42ea82709741d28b0af44d8b283cbc6dbd0c521a7f0e1e1e010ade00977df6",
     "2k_saturn.jpg": "54a900ca9bf7ab62e70f862852759abdf342e6d6436a95a2fe9ebdb6bcd3bbac",
     "2k_saturn_ring_alpha.png": "4b0644b2f3ef259fd0bfaedd9dc52f9e7d9738f65f50363e8c4dd19f650d7334",
+    "2k_stars.jpg": "d19468ddf451851dfa74bfd85637f43533200631319ffa90cc822d4049eee604",
     "2k_sun.jpg": "ff0f076ba65e03b5ab518451bc96699325be38e3ccbdd5869ee1c00f3a0c8816",
     "2k_uranus.jpg": "d15239d46f82d3ea13d2b260b5b29b2a382f42f2916dae0694d0387b1204a09d",
     "2k_venus_atmosphere.jpg": "225012ad4911730605c4e189ca2a3bf674fce50cc48aab4102b936b47d6991ac",
