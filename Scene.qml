@@ -4,7 +4,7 @@ import QtQuick.Window
 
 Rectangle {
     id: root
-    color: "#0f0c1f"
+    color: Qt.rgba(0.059 * (1 - space), 0.047 * (1 - space), 0.122 * (1 - space), 1)
     focus: true
 
     property string password: ""
@@ -13,21 +13,44 @@ Rectangle {
     property bool unlocking: false
     property int selected: -1          // -2 = Sun, 0..7 = planets, -1 = none (overview)
 
-    // supernova: every `novaInterval` ms of being locked the Sun shrinks and reddens, then turns blue as it explodes, the screen
-    // goes black for a moment, then everything fades back in
+    // ---- supernova ------------------------------------------------------------------------------------------
+    // Every `novaInterval` ms of being locked the Sun goes supernova, seen from the normal overview (no zoom).
+    // Everything is real 3D (spheres, no flat images): the textured Sun slowly shrinks and turns
+    // into a small white sphere; it ignites blue as a small sphere and swells slowly in a growing glow;
+    // then the whole screen blows out white, fades to black, and after a pause everything fades back in.
+    // The planets are never touched.
     property int novaInterval: 22 * 60 * 1000
-    property real novaBuild: 0         // 0..1 collapse and colour shift before the explosion
-    property real shock: 0             // 0..1 shockwave expansion
-    property real sunScale: 1          // the Sun disappears at the moment of the explosion
-    readonly property real shockR: shock * 120
-    // collapses to half size, then (once blue) swells slowly out to about twice its original radius
-    readonly property real sunSwell: (1 - 0.5 * novaBuild) * (1 + 3.0 * novaSwell) * sunScale
-    property real novaSwell: 0         // 0 -> 1 after it turns blue: the star slowly swells outward before the real blast
-    property real novaBlue: 0          // 0 -> 1 at the instant the explosion starts: only then does the star turn blue
-    // collapsing: orange deepens to red; exploding: snaps to blue
-    readonly property color novaColor: Qt.rgba(1 + (0.45 - 1) * novaBlue,
-                                               (0.635 - 0.43 * novaBuild) + (0.70 - (0.635 - 0.43 * novaBuild)) * novaBlue,
-                                               (0.227 - 0.15 * novaBuild) + (1.0 - (0.227 - 0.15 * novaBuild)) * novaBlue, 1)
+    property real novaBuild: 0         // 0 -> 1: the textured Sun shrinks and turns into the small white sphere
+    property real novaBlue: 0          // 0 -> 1: white turns blue
+    property real novaGrow: 0          // 0 -> 1: swells slowly (about 2.8 s); still growing when the blast starts
+    property real blastGlow: 0         // 0 -> 1: the flood of light that fills the screen
+    readonly property bool novaOn: novaBuild > 0.001
+    readonly property real space: novaOn ? Math.min(1, novaBuild * 1.2) : 0   // background and UI fade to black space
+    readonly property real sunScale: (1 - 0.55 * novaBuild) * (1 - 0.45 * novaBlue) * (1 + 0.6 * novaGrow)
+    readonly property real heat: Math.max(0, Math.min(1, (novaGrow - 0.02) / 0.32))   // the lit white-blue star builds up as it swells
+    readonly property real sunR: 3.5 * sunScale
+    property real fxTime: 0            // seconds, advanced every frame (gentle wobble and drift)
+    readonly property vector3d sunS: Qt.vector3d(0.07 * sunScale * (1 + (0.025 + 0.06 * novaBuild) * Math.sin(fxTime * 1.3)),
+                                                 0.07 * sunScale * (1 + (0.025 + 0.06 * novaBuild) * Math.sin(fxTime * 1.9 + 1.0)),
+                                                 0.07 * sunScale * (1 + (0.025 + 0.06 * novaBuild) * Math.sin(fxTime * 1.6 + 2.0)))
+    // orange -> yellow -> white while it shrinks, then white -> blue
+    readonly property color novaColor: {
+        var r0, g0, b0
+        if (novaBuild < 0.5) {
+            var k = novaBuild * 2
+            r0 = 1.0; g0 = 0.635 + (0.86 - 0.635) * k; b0 = 0.227 + (0.38 - 0.227) * k
+        } else {
+            var k2 = (novaBuild - 0.5) * 2
+            r0 = 1.0; g0 = 0.86 + (0.97 - 0.86) * k2; b0 = 0.38 + (0.92 - 0.38) * k2
+        }
+        return Qt.rgba(r0 + (0.40 - r0) * novaBlue, g0 + (0.80 - g0) * novaBlue, b0 + (1.0 - b0) * novaBlue, 1)
+    }
+    // small body: orange -> cream -> white while shrinking, deep blue at ignition, then white-hot as it swells
+    readonly property color coreCol: Qt.rgba((Math.min(1, novaColor.r + 0.5) * (1 - novaBlue) + 0.22 * novaBlue) * (1 - hot) + 0.9 * hot,
+                                             (Math.min(1, novaColor.g + 0.4) * (1 - novaBlue) + 0.50 * novaBlue) * (1 - hot) + 0.96 * hot,
+                                             (Math.min(1, novaColor.b + 0.3) * (1 - novaBlue) + 1.0 * novaBlue) * (1 - hot) + 1.0 * hot, 1)
+    readonly property real hot: Math.max(0, Math.min(1, (novaGrow - 0.15) / 0.8))
+    readonly property color haloCol: Qt.rgba(novaColor.r * (1 - 0.7 * novaBlue), novaColor.g * (1 - 0.5 * novaBlue), novaColor.b, 1)
     property bool sceneReady: false   // 3D view is enabled one frame after the first (black) frame
     property int framesSeen: 0
     readonly property real homeZ: 130   // camera distance that fits the whole system
@@ -163,8 +186,8 @@ Rectangle {
             Model {
                 property int planetIndex: -2
                 source: "#Sphere"
-                scale: Qt.vector3d(0.07 * root.sunSwell, 0.07 * root.sunSwell, 0.07 * root.sunSwell)
-                visible: root.sunScale > 0.01
+                scale: root.sunS
+                opacity: 1 - Math.max(0, Math.min(1, (root.novaBuild - 0.1) / 0.85))
                 pickable: true
                 materials: DefaultMaterial {
                     lighting: DefaultMaterial.NoLighting
@@ -172,59 +195,72 @@ Rectangle {
                 }
                 NumberAnimation on eulerRotation.y { from: 0; to: 360; duration: 240000; loops: Animation.Infinite }
             }
-            // deep red glow over the surface while the star collapses
-            Model {
-                visible: root.novaBuild > 0.01 && root.sunScale > 0.01
-                source: "#Sphere"
-                scale: Qt.vector3d(0.0703 * root.sunSwell, 0.0703 * root.sunSwell, 0.0703 * root.sunSwell)
-                opacity: root.novaBuild * 0.6 * (1 - root.novaBlue)
-                depthBias: -2
-                pickable: false
-                materials: DefaultMaterial { lighting: DefaultMaterial.NoLighting; diffuseColor: "#ff3b1f" }
-            }
-            // blue-white core: appears only when the explosion starts
-            Model {
-                visible: root.novaBlue > 0.01 && root.sunScale > 0.01
-                source: "#Sphere"
-                scale: Qt.vector3d(0.0705 * root.sunSwell, 0.0705 * root.sunSwell, 0.0705 * root.sunSwell)
-                opacity: root.novaBlue
-                depthBias: -3
-                pickable: false
-                materials: DefaultMaterial { lighting: DefaultMaterial.NoLighting; diffuseColor: "#bfe0ff" }
-            }
-            // the expanding shockwave: a bright thin front and a wider soft bubble behind it
-            Model {
-                visible: root.shock > 0.001 && root.shock < 0.999
-                source: "#Sphere"
-                scale: Qt.vector3d(root.shock * 2.4, root.shock * 2.4, root.shock * 2.4)
-                opacity: (1 - root.shock) * 0.30
-                depthBias: -5
-                pickable: false
-                materials: DefaultMaterial { lighting: DefaultMaterial.NoLighting; diffuseColor: "#6fb0ff" }
-            }
-            Model {
-                visible: root.shock > 0.001 && root.shock < 0.999
-                source: "#Sphere"
-                scale: Qt.vector3d(root.shock * 2.4 * 0.985, root.shock * 2.4 * 0.985, root.shock * 2.4 * 0.985)
-                opacity: (1 - root.shock) * 0.35
-                depthBias: -6
-                pickable: false
-                materials: DefaultMaterial { lighting: DefaultMaterial.NoLighting; diffuseColor: "#eaf4ff" }
-            }
             Repeater3D {
                 model: [ { s: 0.078, o: 0.16, b: -2 }, { s: 0.092, o: 0.08, b: -1 }, { s: 0.115, o: 0.04, b: 0 } ]
                 Model {
                     required property var modelData
                     source: "#Sphere"
-                    scale: Qt.vector3d(modelData.s * root.sunSwell, modelData.s * root.sunSwell, modelData.s * root.sunSwell)
-                    visible: root.sunScale > 0.01
-                    opacity: modelData.o * (1 + 1.8 * sun.glow + 2.6 * root.novaBuild + 2.0 * root.novaSwell)
+                    scale: Qt.vector3d(modelData.s * root.sunScale, modelData.s * root.sunScale, modelData.s * root.sunScale)
+                    opacity: modelData.o * (1 + 1.8 * sun.glow + 3.0 * root.novaBuild) * (1 - root.heat)
                     depthBias: modelData.b
                     pickable: false
                     materials: DefaultMaterial {
                         lighting: DefaultMaterial.NoLighting
-                        diffuseColor: root.novaColor
+                        diffuseColor: root.haloCol
                     }
+                }
+            }
+
+            // ---- the small white sphere the Sun turns into (and the white-hot core after ignition) ----
+            Model {
+                visible: root.novaOn
+                source: "#Sphere"
+                scale: root.sunS.times(1.003)
+                opacity: Math.min(1, Math.max(0, (root.novaBuild - 0.3) / 0.65))
+                depthBias: -2
+                pickable: false
+                materials: DefaultMaterial { lighting: DefaultMaterial.NoLighting; diffuseColor: root.coreCol }
+            }
+            // ===== the swelling: the star stays small, and a soft blue glow builds around it in many thin 3D shells
+            // (seen from behind only, so they never cover the star itself) =====
+            Repeater3D {
+                model: 22
+                Model {
+                    required property int index
+                    visible: root.heat > 0.02
+                    source: "#Sphere"
+                    scale: Qt.vector3d(root.sunR * (1.12 + index * 0.17) * (1 + 0.9 * root.novaGrow) / 50, root.sunR * (1.12 + index * 0.17) * (1 + 0.9 * root.novaGrow) / 50, root.sunR * (1.12 + index * 0.17) * (1 + 0.9 * root.novaGrow) / 50)
+                    opacity: 0.05 * Math.pow(1 - index / 23, 1.7) * root.heat * (0.6 + 0.4 * root.novaGrow) * (1 - 0.4 * root.blastGlow)
+                    depthBias: -4 - index * 0.2
+                    pickable: false
+                    materials: DefaultMaterial { lighting: DefaultMaterial.NoLighting; cullMode: Material.FrontFaceCulling; diffuseColor: index < 7 ? "#7fb2ff" : "#2f6bff" }
+                }
+            }
+            Repeater3D {   // tight bright corona close to the star
+                model: 6
+                Model {
+                    required property int index
+                    visible: root.heat > 0.02
+                    source: "#Sphere"
+                    scale: root.sunS.times(1.05 + index * 0.12)
+                    opacity: 0.18 * (1 - index * 0.15) * root.heat
+                    depthBias: -2.5 - index * 0.1
+                    pickable: false
+                    materials: DefaultMaterial { lighting: DefaultMaterial.NoLighting; cullMode: Material.FrontFaceCulling; diffuseColor: "#cfe6ff" }
+                }
+            }
+            // the blast: a fireball that floods outward, white-hot inside and blue at its leading edge, until it fills the screen
+            Repeater3D {
+                model: 6
+                Model {
+                    required property int index
+                    visible: root.blastGlow > 0.001
+                    source: "#Sphere"
+                    scale: Qt.vector3d((root.sunR * 2.2 + root.blastGlow * (1.0 - index * 0.07) * 70) / 50, (root.sunR * 2.2 + root.blastGlow * (1.0 - index * 0.07) * 70) / 50, (root.sunR * 2.2 + root.blastGlow * (1.0 - index * 0.07) * 70) / 50)
+                    opacity: 0.16 * Math.min(1, root.blastGlow * 3)
+                    depthBias: -10 - index * 0.2
+                    pickable: false
+                    materials: DefaultMaterial { lighting: DefaultMaterial.NoLighting; cullMode: Material.BackFaceCulling; diffuseColor: Qt.rgba(1 - 0.5 * index / 5, 1 - 0.31 * index / 5, 1, 1) }
                 }
             }
         }
@@ -234,9 +270,7 @@ Rectangle {
         // asteroid belt between Mars and Jupiter: tiny cubes sharing one material
         PrincipledMaterial { id: rockMat; baseColor: "#c4a67e"; roughness: 1; specularAmount: 0; emissiveFactor: Qt.vector3d(0.16, 0.12, 0.08) }
         Node {
-            readonly property real vanish: root.shock > 0 ? Math.max(0, Math.min(1, (root.shockR - 22.5) / 4 + 0.5)) : 0
-            visible: vanish < 0.99
-            scale: Qt.vector3d(1 - vanish, 1 - vanish, 1 - vanish)
+            opacity: 1 - 0.9 * root.space
             NumberAnimation on eulerRotation.y { from: 0; to: 360; duration: 400000; loops: Animation.Infinite }
             Repeater3D {
                 model: 260
@@ -264,8 +298,6 @@ Rectangle {
                 readonly property vector3d bodyPos: body.scenePosition
                 property real glow: root.hovered === orbit.index ? 1 : 0
                 readonly property color tint: modelData.color
-                // 0..1 bump while the shockwave front is passing this planet's orbit
-                readonly property real hit: root.shock > 0 ? Math.max(0, 1 - Math.abs(root.shockR - modelData.dist) / 7) * (1 - root.shock) : 0
                 Behavior on glow { NumberAnimation { duration: 160 } }
                 Texture {
                     id: bodyTex
@@ -288,7 +320,7 @@ Rectangle {
 
                 // orbit ring: short flat dashes of constant length and width, so they stay sharp at any angle
                 Node {
-                    opacity: (root.hovered === orbit.index || root.selected === orbit.index ? 0.7 : 0.3) * (1 - body.vanish)
+                    opacity: (root.hovered === orbit.index || root.selected === orbit.index ? 0.7 : 0.3) * (1 - 0.9 * root.space)
                     Repeater3D {
                         model: Math.round(2 * Math.PI * orbit.modelData.dist / 2.5)
                         Model {
@@ -307,10 +339,6 @@ Rectangle {
                 Node {
                     id: body
                     x: orbit.modelData.dist
-                    // 0 -> 1 across the shockwave front: the planet is consumed as the front passes
-                    readonly property real vanish: root.shock > 0 ? Math.max(0, Math.min(1, (root.shockR - orbit.modelData.dist) / 4 + 0.5)) : 0
-                    visible: vanish < 0.99
-                    scale: Qt.vector3d(1 - vanish, 1 - vanish, 1 - vanish)
                     // axial tilt, then spin around the tilted axis
                     Node {
                         eulerRotation.z: orbit.modelData.tilt
@@ -323,7 +351,7 @@ Rectangle {
                             materials: PrincipledMaterial {
                                 baseColorMap: bodyTex
                                 emissiveMap: bodyTex
-                                emissiveFactor: Qt.vector3d(orbit.tint.r * orbit.glow * 0.4 + orbit.hit * 0.35, orbit.tint.g * orbit.glow * 0.4 + orbit.hit * 0.6, orbit.tint.b * orbit.glow * 0.4 + orbit.hit * 1.0)
+                                emissiveFactor: Qt.vector3d(orbit.tint.r * orbit.glow * 0.4, orbit.tint.g * orbit.glow * 0.4, orbit.tint.b * orbit.glow * 0.4)
                                 normalMap: orbit.modelData.normal !== undefined ? bodyNormal : null
                                 normalStrength: 0.9
                                 roughness: 1
@@ -427,6 +455,7 @@ Rectangle {
                     var o = rep.objectAt(root.selected)
                     if (o) t = o.bodyPos
                 }
+                root.fxTime += frameTime
                 var k = Math.min(1, frameTime * 5)
                 origin.position = Qt.vector3d(
                     origin.position.x + (t.x - origin.position.x) * k,
@@ -497,7 +526,7 @@ Rectangle {
         color: "#1d1632"
         border.width: 0.5
         border.color: root.tipInfo ? Qt.alpha(root.tipInfo.color, 0.7) : "#b3fff1d6"
-        opacity: root.shownIndex !== -1 ? 0.95 : 0
+        opacity: (root.shownIndex !== -1 && !root.novaOn) ? 0.95 : 0
         visible: opacity > 0.01
         Behavior on opacity { NumberAnimation { duration: 140 } }
 
@@ -525,6 +554,7 @@ Rectangle {
 
     // clock
     Column {
+        opacity: 1 - root.space
         anchors.top: parent.top
         anchors.topMargin: parent.height * 0.03
         anchors.horizontalCenter: parent.horizontalCenter
@@ -549,6 +579,7 @@ Rectangle {
     // password pill: dots, or a status hint when empty
     Rectangle {
         id: pill
+        opacity: 1 - 0.85 * root.space
         anchors.bottom: parent.bottom
         anchors.bottomMargin: 44
         anchors.horizontalCenter: parent.horizontalCenter
@@ -590,46 +621,32 @@ Rectangle {
     NumberAnimation { id: fadeIn; target: veil; property: "opacity"; from: 1; to: 0; duration: 1000; easing.type: Easing.OutCubic }
     NumberAnimation { id: fadeOut; target: veil; property: "opacity"; to: 1; duration: 250; easing.type: Easing.InOutQuad; onFinished: root.unlocked() }
     NumberAnimation { id: introZoom; target: cam; property: "z"; from: 175; to: root.homeZ; duration: 1800; easing.type: Easing.OutCubic }
-    // bright blue-white flash of the explosion, above the scene but below the black veil
-    Rectangle { id: flash; anchors.fill: parent; z: 999; color: "#d6e9ff"; opacity: 0 }
+    // white-blue flash that covers the whole screen at the blast; the black veil then fades in over it
+    Rectangle { id: flash; anchors.fill: parent; z: 999; color: "#e6f4ff"; opacity: 0 }
 
-    function resetView() {
-        introZoom.stop()
-        selected = -1
-        zoomAnim.stop()
-        zoomAnim.to = homeZ
-        zoomAnim.start()
-    }
-    function resetNova() { novaBuild = 0; novaBlue = 0; novaSwell = 0; shock = 0; sunScale = 1; flash.opacity = 0 }
+    function resetNova() { novaBuild = 0; novaBlue = 0; novaGrow = 0; blastGlow = 0; flash.opacity = 0 }
+    function resetView() { introZoom.stop(); selected = -1; zoomAnim.stop(); zoomAnim.to = homeZ; zoomAnim.start() }   // back to the overview
 
     SequentialAnimation {
         id: novaAnim
-        ScriptAction { script: root.resetView() }
-        // the star collapses in on itself and turns blue
-        NumberAnimation { target: root; property: "novaBuild"; to: 1; duration: 4200; easing.type: Easing.InCubic }
-        // the moment it starts to blow the star turns blue
-        NumberAnimation { target: root; property: "novaBlue"; to: 1; duration: 200; easing.type: Easing.OutQuad }
-        // the blue star expands slowly, building up speed, and only then does it explode fully
-        NumberAnimation { target: root; property: "novaSwell"; to: 1; duration: 3400; easing.type: Easing.InQuad }
-        ParallelAnimation {
-            SequentialAnimation {   // flash
-                NumberAnimation { target: flash; property: "opacity"; to: 1; duration: 220; easing.type: Easing.OutQuad }
-                PauseAnimation { duration: 180 }
-                NumberAnimation { target: flash; property: "opacity"; to: 0; duration: 1600; easing.type: Easing.OutCubic }
-            }
-            SequentialAnimation {   // the Sun is gone the moment the flash peaks
-                PauseAnimation { duration: 260 }
-                NumberAnimation { target: root; property: "sunScale"; to: 0; duration: 120 }
-            }
-            NumberAnimation { target: root; property: "shock"; from: 0; to: 1; duration: 3200; easing.type: Easing.OutCubic }
-            SequentialAnimation {   // fade to black while the wave is still travelling
-                PauseAnimation { duration: 2300 }
-                NumberAnimation { target: veil; property: "opacity"; to: 1; duration: 900; easing.type: Easing.InOutQuad }
+        ScriptAction { script: root.resetView() }                                                                       // back to the overview if zoomed in
+        NumberAnimation { target: root; property: "novaBuild"; to: 1; duration: 8200; easing.type: Easing.InOutQuad }   // texture slowly becomes the small white sphere
+        NumberAnimation { target: root; property: "novaBlue"; to: 1; duration: 1400; easing.type: Easing.InOutSine }    // ignites blue
+        ParallelAnimation {                                                                                             // swell and blast as one continuous motion
+            NumberAnimation { target: root; property: "novaGrow"; to: 1.0; duration: 2800; easing.type: Easing.Linear }
+            SequentialAnimation {
+                PauseAnimation { duration: 2500 }
+                ParallelAnimation {
+                    NumberAnimation { target: root; property: "blastGlow"; from: 0; to: 1; duration: 450; easing.type: Easing.InQuad }
+                    NumberAnimation { target: flash; property: "opacity"; to: 1; duration: 300; easing.type: Easing.InQuad }
+                }
             }
         }
-        PauseAnimation { duration: 2600 }   // the black moment
+        PauseAnimation { duration: 350 }
+        NumberAnimation { target: veil; property: "opacity"; to: 1; duration: 1100; easing.type: Easing.InOutQuad }    // white fades to black
         ScriptAction { script: root.resetNova() }
-        ParallelAnimation {                 // everything comes back, like a fresh lock
+        PauseAnimation { duration: 2500 }                                                                               // the black moment
+        ParallelAnimation {                                                                                             // everything comes back
             NumberAnimation { target: veil; property: "opacity"; to: 0; duration: 1600; easing.type: Easing.OutCubic }
             ScriptAction { script: introZoom.restart() }
         }

@@ -3,11 +3,11 @@
 An animated, interactive 3D solar system as your lockscreen. Textured planets orbit a glowing Sun behind a
 clock; hover a planet to learn about it, click to fly in on it, and type your password to unlock.
 
-![Solar Lock: the orbiting solar system, then a flight in on Earth and Saturn with their description cards](docs/solar-lock.gif)
+![Solar Lock: the orbiting solar system with a clock, then a flight in on Earth and Saturn with their description cards](docs/solar-lock.gif)
 
 - **Real-looking worlds:** photo textures for every planet, Earth's clouds and Moon, Saturn's rings, an asteroid belt and sharp dashed orbits
 - **Interactive:** hover for a description card, click to zoom in, scroll to zoom
-- **Supernova:** every 22 minutes of being locked the Sun shrinks and reddens, turns blue and slowly swells, then explodes fully, the shockwave consumes every planet and orbit, and after a moment of black everything fades back in
+- **Supernova:** every 22 minutes of being locked the textured Sun slowly shrinks into a small white sphere, turns blue and swells in a growing glow, then the whole screen blows out white and fades to black before everything fades back in
 - **Polished:** fade in on lock, fade out on unlock, clock and date, a password pill with dots
 - **Safe fallback:** if the lock fails to start or crashes, `hyprlock` takes over (Hyprland)
 
@@ -133,6 +133,19 @@ fallback lockscreen and the session stays locked.
 | Backspace / Esc | Delete one character / clear everything |
 | Enter | Submit. A wrong password shows "wrong password" in red; typing again clears it |
 
+## The supernova
+
+![The Sun shrinks into a small white sphere, turns blue and swells, then the screen blows out white and fades to black before everything fades back in](docs/supernova.gif)
+
+Every **22 minutes of being locked** the Sun goes supernova, in this order:
+
+1. the textured Sun slowly shrinks and its pattern fades into a small white sphere;
+2. it ignites blue and swells slowly in a growing glow, its core turning white-hot;
+3. the whole screen blows out white and fades to black (the planets are never touched);
+4. after a short pause everything fades back in.
+
+The timer counts time spent locked and starts over every time you lock, so a short lock never sees it. Unlocking while it plays cancels it. Change the interval with `novaInterval` in `Scene.qml` (milliseconds, default `22 * 60 * 1000`).
+
 ## Customising
 
 Almost everything is in `Scene.qml`:
@@ -143,6 +156,7 @@ Almost everything is in `Scene.qml`:
 | How far the camera sits (increase it to shrink the whole system) | `homeZ` |
 | Fade durations | `fadeIn` and `fadeOut` |
 | How often the supernova happens (milliseconds, default `22 * 60 * 1000`; it counts time spent locked and starts over each time you lock) | `novaInterval` |
+| The supernova's timing, size and colours | the `// ---- supernova` block and the `novaAnim` sequence |
 | Clock font, size and position | the `// clock` block |
 | Lighting and anti-aliasing | the `PointLight` and `SceneEnvironment` in the 3D view |
 
