@@ -19,33 +19,7 @@ clock; hover a planet to learn about it, click to fly in on it, and type your pa
 > **Use at your own risk.** This is a hobby lockscreen, not a security-audited one. Test it with a spare TTY
 > logged in before you rely on it (see [Safety and recovery](#safety-and-recovery)).
 
-## Install on Arch Linux (package)
-
-The easiest way: a package installs everything under `/usr/share/quickshell-solar-lock`, pulls in the dependencies,
-downloads the textures (checked against their checksums) and gives you ready-made commands.
-
-```sh
-git clone https://github.com/1ceblink/quickshell-solar-lock.git
-cd quickshell-solar-lock/packaging/arch
-makepkg -si
-```
-
-This builds the latest release (`v1.0.0`) straight from GitHub and installs it with `pacman`. To build the latest
-`main` instead, run `SOLAR_LOCK_REF=branch=main makepkg -si`. An AUR package (`yay -S solar-lock`) is planned.
-
-| Command | What it does |
-| --- | --- |
-| `solar-lock` | Locks the screen (falls back to `hyprlock` if the lock fails to start) |
-| `solar-lock-preview` | Opens the scene in a window; nothing is locked |
-| `solar-lock-install-kde` / `solar-lock-uninstall-kde` | Set up or remove the [KDE Plasma](#kde-plasma) lockscreen |
-
-Then bind your lock key to `solar-lock` (see [Hyprland setup](#hyprland-and-other-wayland-compositors); the
-package installs the command into your `PATH`, so use `solar-lock` instead of the long path in those snippets) and keep a
-spare TTY logged in the first time ([Safety and recovery](#safety-and-recovery)). To update, rebuild the package.
-
-The rest of this page (manual install) is for other distributions or if you prefer to run it from a clone.
-
-## Quick start (manual install)
+## Quick start
 
 **1. Install the dependencies** (Arch package names):
 
@@ -218,7 +192,6 @@ bin/preview                     opens the scene in a window, nothing is locked
 bin/install-kde, uninstall-kde  KDE Plasma setup and removal
 kde/lockscreen/LockScreen.qml   the KDE greeter UI that hosts Scene.qml
 tools/fetch_textures.py         downloads the textures and builds the ring and bump maps
-packaging/arch/PKGBUILD         Arch Linux package (also the base for the AUR package)
 textures/                       created by the script, not committed
 ```
 
