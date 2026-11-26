@@ -1,0 +1,4 @@
+#!/bin/sh
+# Open the scene in a normal window (nothing is locked; typing only prints to the terminal).
+DIR=$(cd "$(dirname "$(readlink -f "$0")")/.." && pwd)
+exec qs -p "$DIR/dev.qml"

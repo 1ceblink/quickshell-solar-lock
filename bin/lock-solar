@@ -1,7 +1,7 @@
 #!/bin/sh
 # Lock the screen with the Quickshell solar-system lock.
 # If it fails to start or crashes, fall back to hyprlock so the session never stays unlocked.
-DIR=$(cd "$(dirname "$0")/.." && pwd)
+DIR=$(cd "$(dirname "$(readlink -f "$0")")/.." && pwd)   # follows symlinks, so it also works as /usr/bin/solar-lock
 pgrep -x hyprlock >/dev/null && exit 0
 # textures are downloaded separately (tools/fetch_textures.py); without them use the plain lock
 [ -f "$DIR/textures/2k_earth_daymap.jpg" ] || exec hyprlock

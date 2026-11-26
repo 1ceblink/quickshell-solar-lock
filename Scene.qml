@@ -83,6 +83,14 @@ Rectangle {
         "desc": "Our star holds 99.8% of the system's mass. Its light takes just over 8 minutes to reach Earth."
     }
 
+    readonly property var moonInfo: {
+        "name": "Moon", "size": 0.375, "color": "#c9c4b8",
+        "meta": "orbits Earth every 27 days \u00b7 384,400 km away",
+        "desc": "Earth's only natural satellite, about a quarter of its width. It drifts away from us by roughly 3.8 cm every year."
+    }
+    readonly property int moonHost: planets.findIndex(p => p.moon === true)   // the planet the Moon orbits
+    property bool flying: false        // true while the camera is flying in or out: no description card then
+
     property int hovered: -1
     property point hoverPos: Qt.point(-1, -1)
     property real ringX: 0
@@ -99,21 +107,25 @@ Rectangle {
     // screen-space description of a target: centre, rough radius and the reach we accept for clicks
     function screenOf(i) {
         var pos = Qt.vector3d(0, 0, 0)
-        if (i !== -2) {
+        if (i === -3) {
+            var h = rep.objectAt(moonHost)
+            if (!h) return null
+            pos = h.moonPos
+        } else if (i !== -2) {
             var o = rep.objectAt(i)
             if (!o) return null
             pos = o.bodyPos
         }
         var sp = view.mapFrom3DScene(pos)
         if (sp.z <= 0) return null
-        var size = i === -2 ? sunInfo.size : planets[i].size
+        var size = i === -3 ? moonInfo.size : i === -2 ? sunInfo.size : planets[i].size
         var r = size * (height / 2) / (0.364 * (sp.z + cam.clipNear))
-        return { x: sp.x, y: sp.y, r: r, reach: Math.max(26, r * 1.15) }
+        return { x: sp.x, y: sp.y, r: r, reach: Math.max(i === -3 ? 14 : 26, r * 1.15) }
     }
 
     function hitTest(px, py) {
         var best = -1, bestScore = 1e9
-        for (var i = -2; i < planets.length; i++) {
+        for (var i = -3; i < planets.length; i++) {
             if (i === -1) continue
             var t = screenOf(i)
             if (!t) continue
@@ -296,6 +308,9 @@ Rectangle {
                 required property var modelData
                 required property int index
                 readonly property vector3d bodyPos: body.scenePosition
+                readonly property vector3d moonPos: moonBody.scenePosition
+                property real moonGlow: root.hovered === -3 && modelData.moon === true ? 1 : 0
+                Behavior on moonGlow { NumberAnimation { duration: 160 } }
                 property real glow: root.hovered === orbit.index ? 1 : 0
                 readonly property color tint: modelData.color
                 Behavior on glow { NumberAnimation { duration: 160 } }
@@ -310,6 +325,7 @@ Rectangle {
                     generateMipmaps: true; mipFilter: Texture.Linear
                 }
                 Texture { id: moonNormal; source: root.tex("moon_n.png"); generateMipmaps: true; mipFilter: Texture.Linear }
+                Texture { id: moonTex; source: root.tex("2k_moon.jpg"); generateMipmaps: true; mipFilter: Texture.Linear }
 
                 NumberAnimation on eulerRotation.y {
                     from: orbit.index * 47
@@ -429,12 +445,15 @@ Rectangle {
                         visible: orbit.modelData.moon === true
                         NumberAnimation on eulerRotation.y { from: 0; to: 360; duration: 25000; loops: Animation.Infinite }
                         Model {
+                            id: moonBody
                             x: 2.1
                             source: "#Sphere"
                             scale: Qt.vector3d(0.0075, 0.0075, 0.0075)
                             pickable: false
                             materials: PrincipledMaterial {
-                                baseColorMap: Texture { source: root.tex("2k_moon.jpg"); generateMipmaps: true; mipFilter: Texture.Linear }
+                                baseColorMap: moonTex
+                                emissiveMap: moonTex
+                                emissiveFactor: Qt.vector3d(0.4 * orbit.moonGlow, 0.4 * orbit.moonGlow, 0.37 * orbit.moonGlow)
                                 normalMap: moonNormal
                                 normalStrength: 0.9
                                 roughness: 1
@@ -454,6 +473,9 @@ Rectangle {
                 if (root.selected >= 0) {
                     var o = rep.objectAt(root.selected)
                     if (o) t = o.bodyPos
+                } else if (root.selected === -3) {
+                    var mo = rep.objectAt(root.moonHost)
+                    if (mo) t = mo.moonPos
                 }
                 root.fxTime += frameTime
                 var k = Math.min(1, frameTime * 5)
@@ -466,14 +488,17 @@ Rectangle {
     }
 
     NumberAnimation { id: zoomAnim; target: cam; property: "z"; duration: 900; easing.type: Easing.InOutCubic }
+    Timer { id: flyTimer; interval: 1150; onTriggered: root.flying = false }   // the camera has arrived (or is back out): the card may show
 
     // click a body to zoom in on it; click it again (or empty space) to return to the overview
     function select(i) {
         introZoom.stop()
         if (i === selected) i = -1
         selected = i
+        flying = true
+        flyTimer.restart()
         zoomAnim.stop()
-        zoomAnim.to = i === -2 ? sunInfo.size * 5 + 6 : i >= 0 ? planets[i].size * 5 + 5 : homeZ
+        zoomAnim.to = i === -3 ? moonInfo.size * 5 + 5 : i === -2 ? sunInfo.size * 5 + 6 : i >= 0 ? planets[i].size * 5 + 5 : homeZ
         zoomAnim.start()
     }
 
@@ -510,10 +535,10 @@ Rectangle {
 
     // tooltip card next to the hovered body
     // the hovered body wins; otherwise the zoomed-in one keeps its card without hovering
-    readonly property int shownIndex: hovered !== -1 ? hovered : selected
+    readonly property int shownIndex: flying ? -1 : (hovered !== -1 ? hovered : selected)
     property int tipIndex: -1
     onShownIndexChanged: if (shownIndex !== -1) tipIndex = shownIndex
-    readonly property var tipInfo: tipIndex === -2 ? sunInfo : tipIndex >= 0 ? planets[tipIndex] : null
+    readonly property var tipInfo: tipIndex === -3 ? moonInfo : tipIndex === -2 ? sunInfo : tipIndex >= 0 ? planets[tipIndex] : null
 
     Rectangle {
         id: tip
@@ -680,9 +705,10 @@ Rectangle {
         if (event.key === Qt.Key_Return || event.key === Qt.Key_Enter) {
             if (password.length > 0) { root.submit(password); password = "" }
         } else if (event.key === Qt.Key_Backspace) {
-            password = password.slice(0, -1)
+            password = (event.modifiers & Qt.ControlModifier) ? "" : password.slice(0, -1)   // Ctrl+Backspace clears everything
         } else if (event.key === Qt.Key_Escape) {
-            password = ""
+            if (root.selected !== -1) root.select(root.selected)   // Esc first leaves the zoom ...
+            else password = ""                                     // ... and otherwise clears the password
         } else if (event.text.length === 1 && event.text >= " ") {
             root.edited()
             password += event.text

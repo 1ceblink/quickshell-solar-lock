@@ -21,7 +21,7 @@ QUIET=0
 [ "${1:-}" = "--quiet" ] && QUIET=1
 say() { [ "$QUIET" = 1 ] || echo "$@"; }
 
-DIR=$(cd "$(dirname "$0")/.." && pwd)
+DIR=$(cd "$(dirname "$(readlink -f "$0")")/.." && pwd)   # follows symlinks, so it also works as /usr/bin/solar-lock
 SYS=/usr/share/plasma/shells/org.kde.plasma.desktop
 SHELLS="${XDG_DATA_HOME:-$HOME/.local/share}/plasma/shells"
 DEST="$SHELLS/org.kde.plasma.desktop"
