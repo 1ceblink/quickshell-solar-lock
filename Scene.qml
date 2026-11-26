@@ -142,7 +142,7 @@ Rectangle {
             brightness: 0
             constantFade: 1
             linearFade: 0
-            quadraticFade: 0.12
+            quadraticFade: 3
         }
 
         // sun: textured core plus a few translucent shells for a soft glow
@@ -374,7 +374,7 @@ Rectangle {
                 } else if (hv === -2) {
                     hoverLight.position = Qt.vector3d(0, 0, 0); hoverLight.color = root.sunInfo.color
                 }
-                hoverLight.brightness += ((hv !== -1 ? 3.5 : 0) - hoverLight.brightness) * Math.min(1, frameTime * 10)
+                hoverLight.brightness += ((hv !== -1 ? 4 : 0) - hoverLight.brightness) * Math.min(1, frameTime * 10)
                 var k = Math.min(1, frameTime * 5)
                 origin.position = Qt.vector3d(
                     origin.position.x + (t.x - origin.position.x) * k,
