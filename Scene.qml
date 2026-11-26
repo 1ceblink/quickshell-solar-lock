@@ -13,14 +13,14 @@ Rectangle {
     property bool unlocking: false
     property int selected: -1          // -2 = Sun, 0..7 = planets, -1 = none (overview)
 
-    // supernova: every `novaInterval` ms of being locked the Sun swells, turns blue and explodes, the screen
+    // supernova: every `novaInterval` ms of being locked the Sun shrinks, turns blue and explodes, the screen
     // goes black for a moment, then everything fades back in
     property int novaInterval: 22 * 60 * 1000
-    property real novaBuild: 0         // 0..1 swelling and colour shift before the explosion
+    property real novaBuild: 0         // 0..1 collapse and colour shift before the explosion
     property real shock: 0             // 0..1 shockwave expansion
     property real sunScale: 1          // the Sun disappears at the moment of the explosion
     readonly property real shockR: shock * 120
-    readonly property real sunSwell: (1 + 0.45 * novaBuild) * sunScale
+    readonly property real sunSwell: (1 - 0.5 * novaBuild) * sunScale   // the star collapses in on itself before it blows
     readonly property real novaBlue: Math.pow(novaBuild, 2.4)   // stays orange for most of the build-up, then flips to blue
     readonly property color novaColor: Qt.rgba(1 - 0.55 * novaBlue, 0.635 + 0.065 * novaBlue, 0.227 + 0.773 * novaBlue, 1)
     property bool sceneReady: false   // 3D view is enabled one frame after the first (black) frame
@@ -590,7 +590,7 @@ Rectangle {
     SequentialAnimation {
         id: novaAnim
         ScriptAction { script: root.resetView() }
-        // the star swells and turns blue
+        // the star collapses in on itself and turns blue
         NumberAnimation { target: root; property: "novaBuild"; to: 1; duration: 4200; easing.type: Easing.InCubic }
         ParallelAnimation {
             SequentialAnimation {   // flash
