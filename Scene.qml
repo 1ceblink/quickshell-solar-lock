@@ -139,16 +139,6 @@ Rectangle {
             ambientColor: "#4a3a63"
         }
 
-        // soft light in the hovered body's colour; it lights its neighbours (moon, rocks, nearby planets)
-        PointLight {
-            id: hoverLight
-            color: "white"
-            brightness: 0
-            constantFade: 1
-            linearFade: 0
-            quadraticFade: 3
-        }
-
         // sun: textured core plus a few translucent shells for a soft glow
         Node {
             id: sun
@@ -371,14 +361,6 @@ Rectangle {
                     var o = rep.objectAt(root.selected)
                     if (o) t = o.bodyPos
                 }
-                var hv = root.hovered
-                if (hv >= 0) {
-                    var ho = rep.objectAt(hv)
-                    if (ho) { hoverLight.position = ho.bodyPos; hoverLight.color = root.planets[hv].color }
-                } else if (hv === -2) {
-                    hoverLight.position = Qt.vector3d(0, 0, 0); hoverLight.color = root.sunInfo.color
-                }
-                hoverLight.brightness += ((hv !== -1 ? 4 : 0) - hoverLight.brightness) * Math.min(1, frameTime * 10)
                 var k = Math.min(1, frameTime * 5)
                 origin.position = Qt.vector3d(
                     origin.position.x + (t.x - origin.position.x) * k,
