@@ -13,7 +13,7 @@ Rectangle {
     property bool unlocking: false
     property int selected: -1          // -2 = Sun, 0..7 = planets, -1 = none (overview)
 
-    // supernova: every `novaInterval` ms of being locked the Sun shrinks, turns blue and explodes, the screen
+    // supernova: every `novaInterval` ms of being locked the Sun shrinks and reddens, then turns blue as it explodes, the screen
     // goes black for a moment, then everything fades back in
     property int novaInterval: 22 * 60 * 1000
     property real novaBuild: 0         // 0..1 collapse and colour shift before the explosion
@@ -21,8 +21,11 @@ Rectangle {
     property real sunScale: 1          // the Sun disappears at the moment of the explosion
     readonly property real shockR: shock * 120
     readonly property real sunSwell: (1 - 0.5 * novaBuild) * sunScale   // the star collapses in on itself before it blows
-    readonly property real novaBlue: Math.pow(novaBuild, 2.4)   // stays orange for most of the build-up, then flips to blue
-    readonly property color novaColor: Qt.rgba(1 - 0.55 * novaBlue, 0.635 + 0.065 * novaBlue, 0.227 + 0.773 * novaBlue, 1)
+    property real novaBlue: 0          // 0 -> 1 at the instant the explosion starts: only then does the star turn blue
+    // collapsing: orange deepens to red; exploding: snaps to blue
+    readonly property color novaColor: Qt.rgba(1 + (0.45 - 1) * novaBlue,
+                                               (0.635 - 0.43 * novaBuild) + (0.70 - (0.635 - 0.43 * novaBuild)) * novaBlue,
+                                               (0.227 - 0.15 * novaBuild) + (1.0 - (0.227 - 0.15 * novaBuild)) * novaBlue, 1)
     property bool sceneReady: false   // 3D view is enabled one frame after the first (black) frame
     property int framesSeen: 0
     readonly property real homeZ: 130   // camera distance that fits the whole system
@@ -167,7 +170,17 @@ Rectangle {
                 }
                 NumberAnimation on eulerRotation.y { from: 0; to: 360; duration: 240000; loops: Animation.Infinite }
             }
-            // blue-white core fading in over the orange surface as the star dies
+            // deep red glow over the surface while the star collapses
+            Model {
+                visible: root.novaBuild > 0.01 && root.sunScale > 0.01
+                source: "#Sphere"
+                scale: Qt.vector3d(0.0703 * root.sunSwell, 0.0703 * root.sunSwell, 0.0703 * root.sunSwell)
+                opacity: root.novaBuild * 0.6 * (1 - root.novaBlue)
+                depthBias: -2
+                pickable: false
+                materials: DefaultMaterial { lighting: DefaultMaterial.NoLighting; diffuseColor: "#ff3b1f" }
+            }
+            // blue-white core: appears only when the explosion starts
             Model {
                 visible: root.novaBlue > 0.01 && root.sunScale > 0.01
                 source: "#Sphere"
@@ -585,13 +598,16 @@ Rectangle {
         zoomAnim.to = homeZ
         zoomAnim.start()
     }
-    function resetNova() { novaBuild = 0; shock = 0; sunScale = 1; flash.opacity = 0 }
+    function resetNova() { novaBuild = 0; novaBlue = 0; shock = 0; sunScale = 1; flash.opacity = 0 }
 
     SequentialAnimation {
         id: novaAnim
         ScriptAction { script: root.resetView() }
         // the star collapses in on itself and turns blue
         NumberAnimation { target: root; property: "novaBuild"; to: 1; duration: 4200; easing.type: Easing.InCubic }
+        // the moment it starts to blow the star turns blue
+        NumberAnimation { target: root; property: "novaBlue"; to: 1; duration: 200; easing.type: Easing.OutQuad }
+        PauseAnimation { duration: 140 }
         ParallelAnimation {
             SequentialAnimation {   // flash
                 NumberAnimation { target: flash; property: "opacity"; to: 1; duration: 220; easing.type: Easing.OutQuad }
