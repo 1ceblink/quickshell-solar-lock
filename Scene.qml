@@ -69,7 +69,7 @@ Rectangle {
         var sp = view.mapFrom3DScene(pos)
         if (sp.z <= 0) return null
         var size = i === -2 ? sunInfo.size : planets[i].size
-        var r = size * (height / 2) / (0.364 * (sp.z + 10))
+        var r = size * (height / 2) / (0.364 * (sp.z + cam.clipNear))
         return { x: sp.x, y: sp.y, r: r, reach: Math.max(26, r * 1.15) }
     }
 
@@ -120,7 +120,9 @@ Rectangle {
             PerspectiveCamera {
                 id: cam
                 z: root.homeZ
-                clipFar: 1000
+                // near/far follow the zoom: a fixed near plane (default 10) clips close planets entirely
+                clipNear: Math.max(0.5, z * 0.22)
+                clipFar: z + 170
                 fieldOfView: 40
             }
         }
