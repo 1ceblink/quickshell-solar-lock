@@ -20,7 +20,9 @@ Rectangle {
     property real shock: 0             // 0..1 shockwave expansion
     property real sunScale: 1          // the Sun disappears at the moment of the explosion
     readonly property real shockR: shock * 120
-    readonly property real sunSwell: (1 - 0.5 * novaBuild) * sunScale   // the star collapses in on itself before it blows
+    // collapses to half size, then (once blue) swells slowly out to about twice its original radius
+    readonly property real sunSwell: (1 - 0.5 * novaBuild) * (1 + 3.0 * novaSwell) * sunScale
+    property real novaSwell: 0         // 0 -> 1 after it turns blue: the star slowly swells outward before the real blast
     property real novaBlue: 0          // 0 -> 1 at the instant the explosion starts: only then does the star turn blue
     // collapsing: orange deepens to red; exploding: snaps to blue
     readonly property color novaColor: Qt.rgba(1 + (0.45 - 1) * novaBlue,
@@ -216,7 +218,7 @@ Rectangle {
                     source: "#Sphere"
                     scale: Qt.vector3d(modelData.s * root.sunSwell, modelData.s * root.sunSwell, modelData.s * root.sunSwell)
                     visible: root.sunScale > 0.01
-                    opacity: modelData.o * (1 + 1.8 * sun.glow + 2.6 * root.novaBuild)
+                    opacity: modelData.o * (1 + 1.8 * sun.glow + 2.6 * root.novaBuild + 2.0 * root.novaSwell)
                     depthBias: modelData.b
                     pickable: false
                     materials: DefaultMaterial {
@@ -598,7 +600,7 @@ Rectangle {
         zoomAnim.to = homeZ
         zoomAnim.start()
     }
-    function resetNova() { novaBuild = 0; novaBlue = 0; shock = 0; sunScale = 1; flash.opacity = 0 }
+    function resetNova() { novaBuild = 0; novaBlue = 0; novaSwell = 0; shock = 0; sunScale = 1; flash.opacity = 0 }
 
     SequentialAnimation {
         id: novaAnim
@@ -607,7 +609,8 @@ Rectangle {
         NumberAnimation { target: root; property: "novaBuild"; to: 1; duration: 4200; easing.type: Easing.InCubic }
         // the moment it starts to blow the star turns blue
         NumberAnimation { target: root; property: "novaBlue"; to: 1; duration: 200; easing.type: Easing.OutQuad }
-        PauseAnimation { duration: 140 }
+        // the blue star expands slowly, building up speed, and only then does it explode fully
+        NumberAnimation { target: root; property: "novaSwell"; to: 1; duration: 3400; easing.type: Easing.InQuad }
         ParallelAnimation {
             SequentialAnimation {   // flash
                 NumberAnimation { target: flash; property: "opacity"; to: 1; duration: 220; easing.type: Easing.OutQuad }

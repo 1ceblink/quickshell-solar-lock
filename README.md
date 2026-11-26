@@ -7,7 +7,7 @@ clock; hover a planet to learn about it, click to fly in on it, and type your pa
 
 - **Real-looking worlds:** photo textures for every planet, Earth's clouds and Moon, Saturn's rings, an asteroid belt and sharp dashed orbits
 - **Interactive:** hover for a description card, click to zoom in, scroll to zoom
-- **Supernova:** every 22 minutes of being locked the Sun shrinks and reddens, turns blue the moment it explodes, the shockwave consumes every planet and orbit, and after a moment of black everything fades back in
+- **Supernova:** every 22 minutes of being locked the Sun shrinks and reddens, turns blue and slowly swells, then explodes fully, the shockwave consumes every planet and orbit, and after a moment of black everything fades back in
 - **Polished:** fade in on lock, fade out on unlock, clock and date, a password pill with dots
 - **Safe fallback:** if the lock fails to start or crashes, `hyprlock` takes over (Hyprland)
 
