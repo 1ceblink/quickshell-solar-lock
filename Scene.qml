@@ -219,6 +219,9 @@ Rectangle {
         // asteroid belt between Mars and Jupiter: tiny cubes sharing one material
         PrincipledMaterial { id: rockMat; baseColor: "#c4a67e"; roughness: 1; specularAmount: 0; emissiveFactor: Qt.vector3d(0.16, 0.12, 0.08) }
         Node {
+            readonly property real vanish: root.shock > 0 ? Math.max(0, Math.min(1, (root.shockR - 22.5) / 4 + 0.5)) : 0
+            visible: vanish < 0.99
+            scale: Qt.vector3d(1 - vanish, 1 - vanish, 1 - vanish)
             NumberAnimation on eulerRotation.y { from: 0; to: 360; duration: 400000; loops: Animation.Infinite }
             Repeater3D {
                 model: 260
@@ -270,7 +273,7 @@ Rectangle {
 
                 // orbit ring: short flat dashes of constant length and width, so they stay sharp at any angle
                 Node {
-                    opacity: root.hovered === orbit.index || root.selected === orbit.index ? 0.7 : 0.3
+                    opacity: (root.hovered === orbit.index || root.selected === orbit.index ? 0.7 : 0.3) * (1 - body.vanish)
                     Repeater3D {
                         model: Math.round(2 * Math.PI * orbit.modelData.dist / 2.5)
                         Model {
@@ -289,6 +292,10 @@ Rectangle {
                 Node {
                     id: body
                     x: orbit.modelData.dist
+                    // 0 -> 1 across the shockwave front: the planet is consumed as the front passes
+                    readonly property real vanish: root.shock > 0 ? Math.max(0, Math.min(1, (root.shockR - orbit.modelData.dist) / 4 + 0.5)) : 0
+                    visible: vanish < 0.99
+                    scale: Qt.vector3d(1 - vanish, 1 - vanish, 1 - vanish)
                     // axial tilt, then spin around the tilted axis
                     Node {
                         eulerRotation.z: orbit.modelData.tilt
