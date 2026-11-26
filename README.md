@@ -7,6 +7,7 @@ clock; hover a planet to learn about it, click to fly in on it, and type your pa
 
 - **Real-looking worlds:** photo textures for every planet, Earth's clouds and Moon, Saturn's rings, an asteroid belt and sharp dashed orbits
 - **Interactive:** hover a planet, the Moon or the Sun for a description card, click to zoom in, scroll to zoom
+- **Two themes:** the real Solar System, or a fan-made *Hearthian System* inspired by the game Outer Wilds (see [Themes](#themes))
 - **Supernova:** every 22 minutes of being locked the textured Sun slowly shrinks into a small white sphere, turns blue and swells in a growing glow, then the whole screen blows out white and fades to black before everything fades back in
 - **Polished:** fade in on lock, fade out on unlock, clock and date, a password pill with dots
 - **Safe fallback:** if the lock fails to start or crashes, `hyprlock` takes over (Hyprland)
@@ -21,7 +22,7 @@ clock; hover a planet to learn about it, click to fly in on it, and type your pa
 **1. Install the dependencies** (Arch package names):
 
 ```sh
-sudo pacman -S quickshell qt6-quick3d hyprlock python-pillow
+sudo pacman -S quickshell qt6-quick3d assimp hyprlock python-pillow python-numpy
 ```
 
 | Package | Used for |
@@ -29,7 +30,9 @@ sudo pacman -S quickshell qt6-quick3d hyprlock python-pillow
 | `quickshell` | Runs the lock on Hyprland and similar compositors (not needed on KDE) |
 | `qt6-quick3d` | The 3D scene |
 | `hyprlock` | Provides the PAM service for the password check, and the crash fallback (not needed on KDE) |
+| `assimp` | Lets Qt load the Hearthian theme's planet meshes (`.glb`) |
 | `python-pillow` | The texture script below |
+| `python-numpy` | The mesh script below (Hearthian theme) |
 
 Optional: the *Scenesa* font for the clock. Qt uses a default font if it is missing.
 
@@ -42,6 +45,7 @@ system has updated to Qt Y"*, update or rebuild the `quickshell` package, becaus
 git clone https://github.com/1ceblink/quickshell-solar-lock.git ~/.local/share/quickshell-solar-lock
 cd ~/.local/share/quickshell-solar-lock
 python3 tools/fetch_textures.py
+python3 tools/make_hearthian_meshes.py
 ```
 
 > **The texture step is required.** The planet textures are not stored in this repository (they are CC BY 4.0,
@@ -107,12 +111,12 @@ package `org.kde.plasma.desktop`. Plasma only serves files inside a package, and
 hides the system one completely, so the script:
 
 - copies `/usr/share/plasma/shells/org.kde.plasma.desktop` to `~/.local/share/plasma/shells/` and replaces only
-  `contents/lockscreen/` with `kde/lockscreen/LockScreen.qml` plus symlinks to `Scene.qml` and `textures/`.
+  `contents/lockscreen/` with `kde/lockscreen/LockScreen.qml` plus symlinks to `Scene.qml`, the theme files and `textures/`.
   Everything else is identical, so the desktop, panels and widgets are unaffected;
 - installs `~/.config/plasma-workspace/env/solar-lock-kde.sh`, which rebuilds that copy from the current system
   package at every login, so a Plasma update never leaves a stale copy behind.
 
-Because `Scene.qml` and `textures/` are symlinks, updating this repository updates the KDE lock too. Only a
+Because `Scene.qml`, the theme files and `textures/` are symlinks, updating this repository updates the KDE lock too. Only a
 change to `kde/lockscreen/LockScreen.qml` needs `bin/install-kde` again (or a re-login).
 
 Compared with the stock Plasma lockscreen you lose the Sleep / Switch User buttons, media controls, the
@@ -126,6 +130,7 @@ fallback lockscreen and the session stays locked.
 | Hover a planet, the Moon or the Sun | The body glows softly in its own colour and a card shows its name, orbit and a short description |
 | Click a planet, the Moon or the Sun | The camera glides in on it, and its description card appears once the zoom has finished; click it again, or empty space, to zoom back out |
 | Scroll | Zoom in or out |
+| Up / Down (password empty) or the button in the bottom-right corner | Switch theme (see [Themes](#themes)) |
 | Type | Dots appear in the pill (the password itself is never shown) |
 | Backspace / Ctrl+Backspace | Delete one character / clear everything |
 | Esc | Zoom back out when zoomed in on a planet, otherwise clear the password |
@@ -139,13 +144,46 @@ Every **22 minutes of being locked** the Sun goes supernova.
 
 The timer counts time spent locked and starts over every time you lock, so a short lock never sees it. Unlocking while it plays cancels it. Change the interval with `novaInterval` in `Scene.qml` (milliseconds, default `22 * 60 * 1000`).
 
+## Themes
+
+| Theme | What you see |
+| --- | --- |
+| **Solar System** (`solar`) | The real planets with photo textures, Earth's Moon and the asteroid belt |
+| **Hearthian System** (`hearthian`) | A fan theme inspired by Outer Wilds: the Sun Station, the Hourglass Twins pouring sand between them, Timber Hearth and the Attlerock, Brittle Hollow with its black hole and Hollow's Lantern, Giant's Deep with its cyclones and the Orbital Probe Cannon, Dark Bramble, the Interloper on its stretched orbit, and the Quantum Moon |
+
+Press **Up** or **Down** while the password field is empty, or click the button in the bottom-right corner, to
+switch. Once you have typed a character the arrows do nothing, so they can never get in the way of a password.
+A switch lasts until you unlock; the theme shown when the lock starts is `theme` in `Scene.qml`.
+
+The **Quantum Moon** behaves as it does in the game: it only moves while nobody is looking. When it is off
+screen (you zoomed in somewhere else), hidden behind a nearer body, or the screen is dark (the fade-in, a theme
+switch, after the supernova), it jumps to an orbit around another world. While you hover or select it, it stays put.
+
+**Planet models.** The Hearthian planets are original meshes generated by `tools/make_hearthian_meshes.py` into
+`models/generated/` (noise, craters, dunes, vines; about 8 MB, one second). The effects (the sand column, the
+cyclones, Dark Bramble's fog, the black hole, the comet's tail) are drawn by the theme itself. If the meshes are
+missing, simple shapes stand in.
+
+If you own the game and extracted models from **your own copy** into `models/ow/` (one `.glb` per body, centred,
+Y up, radius 1, named like the generated ones, e.g. `timber_hearth.glb`), those are used instead; `sun_station.glb` and
+`orbital_probe_cannon.glb` replace those two bodies' simple shapes. `models/` is
+git-ignored: models from the game belong to Mobius Digital, so never commit or share them.
+
+The theme uses no art, textures or text from the game. Outer Wilds is a game by Mobius Digital; this project is
+not affiliated with it.
+
+> This work is unofficial Fan Content created under permission from the Mobius Digital Fan Content Policy. It
+> includes materials which are the property of Mobius Digital and it is neither approved nor endorsed by Mobius
+> Digital.
+
 ## Customising
 
-Almost everything is in `Scene.qml`:
+Almost everything is in `Scene.qml` and the theme files (`SolarSystem.qml`, `HearthianSystem.qml`):
 
 | What | Where |
 | --- | --- |
-| Planet names, orbit radius, size, tilt, spin speed and description text | the `planets` list at the top |
+| The theme shown when the lock starts (`"solar"` or `"hearthian"`) | `theme` in `Scene.qml` |
+| Planet names, orbit radius, size, tilt, spin speed and description text | the `planets` list at the top of each theme file |
 | How far the camera sits (increase it to shrink the whole system) | `homeZ` |
 | Fade durations | `fadeIn` and `fadeOut` |
 | How often the supernova happens (milliseconds, default `22 * 60 * 1000`; it counts time spent locked and starts over each time you lock) | `novaInterval` |
@@ -155,6 +193,11 @@ Almost everything is in `Scene.qml`:
 
 Two settings live in `shell.qml`: `config: "hyprlock"` is the PAM service name (use `"login"` if you do not
 have `hyprlock`), and `settings.watchFiles: false` must stay off (see below).
+
+**Several monitors:** set `SOLAR_LOCK_SCREEN` to part of one screen's output name or model (as `hyprctl monitors`
+shows it, e.g. `SOLAR_LOCK_SCREEN=HDMI-A-1` or `SOLAR_LOCK_SCREEN=G24-20` in front of `lock-solar`) to show the scene
+only there. The other screens stay black, and typing on them still goes to the password. If no screen matches,
+every screen shows the scene.
 
 While you experiment, use `dev.qml` rather than the real lock.
 
@@ -199,7 +242,9 @@ While you experiment, use `dev.qml` rather than the real lock.
 ```text
 LICENSE                         MIT
 shell.qml                       the real lock (Hyprland and other compositors)
-Scene.qml                       the 3D scene, clock, password pill and all interaction (shared by every desktop)
+Scene.qml                       the Sun, supernova, clock, password pill and all interaction (shared by every desktop)
+SolarSystem.qml                 the Solar System theme: planets, Moon, asteroid belt
+HearthianSystem.qml             the Hearthian System theme (inspired by Outer Wilds), including the Quantum Moon
 shaders/earth_night.frag        Earth's city lights, shown only on the night side
 dev.qml                         windowed preview, no locking
 bin/lock-solar                  launcher with the hyprlock fallback
@@ -207,7 +252,10 @@ bin/preview                     opens the scene in a window, nothing is locked
 bin/install-kde, uninstall-kde  KDE Plasma setup and removal
 kde/lockscreen/LockScreen.qml   the KDE greeter UI that hosts Scene.qml
 tools/fetch_textures.py         downloads the textures and builds the ring and bump maps
+packaging/arch/PKGBUILD         Arch Linux package (also the base for the AUR package)
+tools/make_hearthian_meshes.py  generates the Hearthian planet meshes
 textures/                       created by the script, not committed
+models/                         generated meshes (and your own extracted ones), not committed
 ```
 
 ## Credits and licence
@@ -216,4 +264,4 @@ textures/                       created by the script, not committed
   licensed [CC BY 4.0](https://creativecommons.org/licenses/by/4.0/). They are downloaded by
   `tools/fetch_textures.py` and are not redistributed here. Please credit them if you share screenshots or videos.
 - Built with [Quickshell](https://quickshell.org) and [Qt](https://www.qt.io).
-- Licence: [MIT](LICENSE), except `kde/lockscreen/LockScreen.qml`, which keeps its `GPL-2.0-or-later` header because it follows KDE's own lockscreen.
+- Licence: [MIT](LICENSE), except `kde/lockscreen/LockScreen.qml`, which keeps its `GPL-2.0-or-later` header because it follows KDE's own lockscreen. The planet textures are not part of this repository; they are CC BY 4.0 (see above). The MIT licence covers this project's code and original assets only: Outer Wilds, its names and its world are the property of Mobius Digital, referenced here as unofficial fan content under the [Mobius Digital Fan Content Policy](https://www.mobiusdigitalgames.com/fan-content-policy.html).
