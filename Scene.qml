@@ -26,7 +26,7 @@ Rectangle {
           desc: "The smallest planet and the closest to the Sun. A year here lasts just 88 days, yet a single day lasts 176 Earth days." },
         { name: "Venus",   dist: 10.5, size: 1.25, tex: "2k_venus_atmosphere.jpg", tilt: 177, spin: 200, year: 0.62, au: 0.72, color: "#e8c27c", atmo: "#ffe0a8", ao: 0.14,
           desc: "The hottest planet, around 465 \u00b0C under thick clouds of acid. It spins backwards, so the Sun rises in the west." },
-        { name: "Earth",   dist: 14.5, size: 1.35, tex: "2k_earth_daymap.jpg", tilt: 23,  spin: 40,  year: 1.0,  au: 1.0,  color: "#3a8cbd", clouds: true, moon: true, atmo: "#8cc4ff", ao: 0.12,
+        { name: "Earth",   dist: 15,   size: 1.35, tex: "2k_earth_daymap.jpg", tilt: 23,  spin: 40,  year: 1.0,  au: 1.0,  color: "#3a8cbd", clouds: true, moon: true, atmo: "#8cc4ff", ao: 0.12,
           desc: "Home, and the only world known to host life. Oceans cover 71% of its surface, and the Moon keeps its tilt steady." },
         { name: "Mars",    dist: 19,   size: 1.0,  tex: "2k_mars.jpg", normal: "mars_n.png", tilt: 25,  spin: 41,  year: 1.88, au: 1.52, color: "#c9653c", atmo: "#ffa874", ao: 0.06,
           desc: "A cold, rusty desert with the tallest volcano in the system: Olympus Mons, about 22 km high." },
@@ -138,6 +138,8 @@ Rectangle {
         // sun: textured core plus a few translucent shells for a soft glow
         Node {
             id: sun
+            property real glow: root.hovered === -2 ? 1 : 0
+            Behavior on glow { NumberAnimation { duration: 160 } }
             Model {
                 property int planetIndex: -2
                 source: "#Sphere"
@@ -155,7 +157,7 @@ Rectangle {
                     required property var modelData
                     source: "#Sphere"
                     scale: Qt.vector3d(modelData.s, modelData.s, modelData.s)
-                    opacity: modelData.o
+                    opacity: modelData.o * (1 + 1.8 * sun.glow)
                     depthBias: modelData.b
                     pickable: false
                     materials: DefaultMaterial {
@@ -196,6 +198,13 @@ Rectangle {
                 required property var modelData
                 required property int index
                 readonly property vector3d bodyPos: body.scenePosition
+                property real glow: root.hovered === orbit.index ? 1 : 0
+                Behavior on glow { NumberAnimation { duration: 160 } }
+                Texture {
+                    id: bodyTex
+                    source: root.tex(orbit.modelData.tex)
+                    generateMipmaps: true; mipFilter: Texture.Linear
+                }
                 Texture {
                     id: bodyNormal
                     source: orbit.modelData.normal !== undefined ? root.tex(orbit.modelData.normal) : ""
@@ -241,7 +250,9 @@ Rectangle {
                             scale: Qt.vector3d(sc, sc * (orbit.modelData.flat !== undefined ? orbit.modelData.flat : 1), sc)
                             pickable: true
                             materials: PrincipledMaterial {
-                                baseColorMap: Texture { source: root.tex(orbit.modelData.tex); generateMipmaps: true; mipFilter: Texture.Linear }
+                                baseColorMap: bodyTex
+                                emissiveMap: bodyTex
+                                emissiveFactor: Qt.vector3d(orbit.glow * 0.3, orbit.glow * 0.3, orbit.glow * 0.3)
                                 normalMap: orbit.modelData.normal !== undefined ? bodyNormal : null
                                 normalStrength: 0.9
                                 roughness: 1
@@ -301,7 +312,7 @@ Rectangle {
                         visible: orbit.modelData.moon === true
                         NumberAnimation on eulerRotation.y { from: 0; to: 360; duration: 25000; loops: Animation.Infinite }
                         Model {
-                            x: 2.7
+                            x: 2.1
                             source: "#Sphere"
                             scale: Qt.vector3d(0.0075, 0.0075, 0.0075)
                             pickable: false
@@ -378,12 +389,6 @@ Rectangle {
         }
     }
 
-    Rectangle {
-        visible: root.hovered !== -1
-        x: root.ringX - root.ringR; y: root.ringY - root.ringR
-        width: root.ringR * 2; height: width; radius: width / 2
-        color: "transparent"; border.width: 1.5; border.color: "#fff1d6"; opacity: 0.75
-    }
     // tooltip card next to the hovered body
     property int tipIndex: -1
     onHoveredChanged: if (hovered !== -1) tipIndex = hovered
