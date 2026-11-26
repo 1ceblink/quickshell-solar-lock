@@ -7,6 +7,7 @@ clock; hover a planet to learn about it, click to fly in on it, and type your pa
 
 - **Real-looking worlds:** photo textures for every planet, Earth's clouds and Moon, Saturn's rings, an asteroid belt and sharp dashed orbits
 - **Interactive:** hover for a description card, click to zoom in, scroll to zoom
+- **Supernova:** every 22 minutes of being locked the Sun swells, turns blue and explodes; after a moment of black everything fades back in
 - **Polished:** fade in on lock, fade out on unlock, clock and date, a password pill with dots
 - **Safe fallback:** if the lock fails to start or crashes, `hyprlock` takes over (Hyprland)
 
@@ -141,6 +142,7 @@ Almost everything is in `Scene.qml`:
 | Planet names, orbit radius, size, tilt, spin speed and description text | the `planets` list at the top |
 | How far the camera sits (increase it to shrink the whole system) | `homeZ` |
 | Fade durations | `fadeIn` and `fadeOut` |
+| How often the supernova happens (milliseconds, default `22 * 60 * 1000`; it counts time spent locked and starts over each time you lock) | `novaInterval` |
 | Clock font, size and position | the `// clock` block |
 | Lighting and anti-aliasing | the `PointLight` and `SceneEnvironment` in the 3D view |
 
