@@ -2,15 +2,9 @@ import QtQuick
 import QtQuick3D
 import QtQuick3D.AssetUtils
 
-// A fan theme inspired by the solar system of the game Outer Wilds. The planets are original meshes made by
-// tools/make_hearthian_meshes.py (models/generated/); if you extracted models from your own copy of the game into
-// models/ow/ (never committed), those are used instead; with neither, simple primitives stand in.
-// The effects (sand column, cyclones, fog, black hole, comet tail) are always drawn here. No game assets are
-// shipped. Descriptions are original and kept light on spoilers.
-//
-// This work is unofficial Fan Content created under permission from the Mobius Digital Fan Content Policy.
-// It includes materials which are the property of Mobius Digital and it is neither approved nor endorsed by
-// Mobius Digital.
+// The Hearthian System theme. The planets are meshes made by tools/make_hearthian_meshes.py (models/generated/);
+// models placed in models/ow/ are used instead; with neither, simple primitives stand in.
+// The effects (sand column, cyclones, fog, black hole, comet tail) are always drawn here.
 // Scene.qml loads one theme at a time and talks to it through `planets`, `sunInfo`, `moonInfo` and bodyPos().
 Node {
     id: system

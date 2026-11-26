@@ -3,8 +3,7 @@ textures/*
 !textures/.gitkeep
 __pycache__/
 
-# models/generated: made by tools/make_hearthian_meshes.py; models/ow: models extracted from your own copy of
-# Outer Wilds (Mobius Digital's property: never commit or share them)
+# models/generated: made by tools/make_hearthian_meshes.py; models/ow: your own models
 models/
 
 # makepkg build output (packaging/arch)

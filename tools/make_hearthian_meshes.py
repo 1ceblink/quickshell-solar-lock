@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """Generate the planet meshes of the Hearthian theme as glTF (.glb) files in models/generated/.
 
-Every mesh is original and procedural (noise, craters, dunes, vines); nothing comes from the game.
+Every mesh is procedural (noise, craters, dunes, vines).
 Each body is centred on the origin, Y up, with a radius of about 1; HearthianSystem.qml scales it.
 Colours are stored per vertex (COLOR_0), so no textures are needed.
 Needs Python 3 and NumPy (python-numpy). Run: python3 tools/make_hearthian_meshes.py [--check]

@@ -7,7 +7,7 @@ clock; hover a planet to learn about it, click to fly in on it, and type your pa
 
 - **Real-looking worlds:** photo textures for every planet, Earth's clouds and Moon, Saturn's rings, an asteroid belt and sharp dashed orbits
 - **Interactive:** hover a planet, the Moon or the Sun for a description card, click to zoom in, scroll to zoom
-- **Two themes:** the real Solar System, or a fan-made *Hearthian System* inspired by the game  (see [Themes](#themes))
+- **Two themes:** the real Solar System, or a second, made-up *Hearthian System* with its own planets and effects (see [Themes](#themes))
 - **Supernova:** every 22 minutes of being locked the textured Sun slowly shrinks into a small white sphere, turns blue and swells in a growing glow, then the whole screen blows out white and fades to black before everything fades back in
 - **Polished:** fade in on lock, fade out on unlock, clock and date, a password pill with dots
 - **Safe fallback:** if the lock fails to start or crashes, `hyprlock` takes over (Hyprland)
@@ -150,13 +150,13 @@ The timer counts time spent locked and starts over every time you lock, so a sho
 | Theme | What you see |
 | --- | --- |
 | **Solar System** (`solar`) | The real planets with photo textures, Earth's Moon and the asteroid belt |
-| **Hearthian System** (`hearthian`) | A fan theme inspired by : the Sun Station, the Hourglass Twins pouring sand between them, Timber Hearth and the Attlerock, Brittle Hollow with its black hole and Hollow's Lantern, Giant's Deep with its cyclones and the Orbital Probe Cannon, Dark Bramble, the Interloper on its stretched orbit, and the Quantum Moon |
+| **Hearthian System** (`hearthian`) | The Sun Station, the Hourglass Twins pouring sand between them, Timber Hearth and the Attlerock, Brittle Hollow with its black hole and Hollow's Lantern, Giant's Deep with its cyclones and the Orbital Probe Cannon, Dark Bramble, the Interloper on its stretched orbit, and the Quantum Moon |
 
 Press **Up** or **Down** while the password field is empty, or click the button in the bottom-right corner, to
 switch. Once you have typed a character the arrows do nothing, so they can never get in the way of a password.
 A switch lasts until you unlock; the theme shown when the lock starts is `theme` in `Scene.qml`.
 
-The **Quantum Moon** behaves as it does in the game: it only moves while nobody is looking. When it is off
+The **Quantum Moon** only moves while nobody is looking. When it is off
 screen (you zoomed in somewhere else), hidden behind a nearer body, or the screen is dark (the fade-in, a theme
 switch, after the supernova), it jumps to an orbit around another world. While you hover or select it, it stays put.
 
@@ -165,17 +165,9 @@ switch, after the supernova), it jumps to an orbit around another world. While y
 cyclones, Dark Bramble's fog, the black hole, the comet's tail) are drawn by the theme itself. If the meshes are
 missing, simple shapes stand in.
 
-If you own the game and extracted models from **your own copy** into `models/ow/` (one `.glb` per body, centred,
-Y up, radius 1, named like the generated ones, e.g. `timber_hearth.glb`), those are used instead; `sun_station.glb` and
-`orbital_probe_cannon.glb` replace those two bodies' simple shapes. `models/` is
-git-ignored: models from the game belong to Mobius Digital, so never commit or share them.
-
-The theme uses no art, textures or text from the game.  is a game by Mobius Digital; this project is
-not affiliated with it.
-
-> This work is unofficial Fan Content created under permission from the Mobius Digital Fan Content Policy. It
-> includes materials which are the property of Mobius Digital and it is neither approved nor endorsed by Mobius
-> Digital.
+Your own models can go into `models/ow/` (one `.glb` per body, centred, Y up, radius 1, named like the generated
+ones, e.g. `timber_hearth.glb`); those are used instead. `sun_station.glb` and `orbital_probe_cannon.glb` replace
+those two bodies' simple shapes.
 
 ## Customising
 
@@ -245,7 +237,7 @@ LICENSE                         MIT
 shell.qml                       the real lock (Hyprland and other compositors)
 Scene.qml                       the Sun, supernova, clock, password pill and all interaction (shared by every desktop)
 SolarSystem.qml                 the Solar System theme: planets, Moon, asteroid belt
-HearthianSystem.qml             the Hearthian System theme (inspired by ), including the Quantum Moon
+HearthianSystem.qml             the Hearthian System theme, including the Quantum Moon
 shaders/earth_night.frag        Earth's city lights, shown only on the night side
 dev.qml                         windowed preview, no locking
 bin/lock-solar                  launcher with the hyprlock fallback
@@ -265,4 +257,4 @@ models/                         generated meshes (and your own extracted ones), 
   licensed [CC BY 4.0](https://creativecommons.org/licenses/by/4.0/). They are downloaded by
   `tools/fetch_textures.py` and are not redistributed here. Please credit them if you share screenshots or videos.
 - Built with [Quickshell](https://quickshell.org) and [Qt](https://www.qt.io).
-- Licence: [MIT](LICENSE), except `kde/lockscreen/LockScreen.qml`, which keeps its `GPL-2.0-or-later` header because it follows KDE's own lockscreen. The planet textures are not part of this repository; they are CC BY 4.0 (see above). The MIT licence covers this project's code and original assets only: , its names and its world are the property of Mobius Digital, referenced here as unofficial fan content under the [Mobius Digital Fan Content Policy](https://www.mobiusdigitalgames.com/fan-content-policy.html).
+- Licence: [MIT](LICENSE), except `kde/lockscreen/LockScreen.qml`, which keeps its `GPL-2.0-or-later` header because it follows KDE's own lockscreen.
