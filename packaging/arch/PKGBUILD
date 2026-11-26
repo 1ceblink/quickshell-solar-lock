@@ -1,12 +1,16 @@
 # Maintainer: Armen <108435601+1ceblink@users.noreply.github.com>
 #
-# Build from the AUR:        yay -S quickshell-solar-lock-git
-# Build from a checkout:     cd packaging/arch && SOLAR_LOCK_REPO=file://$(git rev-parse --show-toplevel) makepkg -si
-#                            (a local build uses the committed files, so commit your changes first)
+# Build from the AUR:        yay -S solar-lock
+# Build from a checkout (the latest main, for development):
+#   cd packaging/arch && SOLAR_LOCK_REPO=file://$(git rev-parse --show-toplevel) SOLAR_LOCK_REF=branch=main makepkg -si
+#   (a local build uses the committed files, so commit your changes first)
+#
+# A release package: it builds exactly the tag v$pkgver. To release: tag the repository, bump pkgver here, run
+# `makepkg --printsrcinfo > .SRCINFO`, and push PKGBUILD and .SRCINFO to the AUR.
 
-pkgname=quickshell-solar-lock-git
-_name=quickshell-solar-lock
-pkgver=r0.0000000
+pkgname=solar-lock
+_name=quickshell-solar-lock   # the upstream repository name (also the install folder under /usr/share)
+pkgver=1.0.0
 pkgrel=1
 pkgdesc='Animated, interactive 3D solar-system lockscreen for Wayland (Quickshell) and KDE Plasma'
 arch=('any')
@@ -15,14 +19,13 @@ license=('MIT' 'GPL-2.0-or-later')   # everything is MIT except kde/lockscreen/L
 depends=('quickshell' 'qt6-quick3d' 'hyprlock')   # hyprlock provides the PAM service and the crash fallback
 makedepends=('git' 'python-pillow')
 optdepends=('plasma-workspace: use it as the KDE Plasma lockscreen (solar-lock-install-kde)')
-provides=("$_name")
-conflicts=("$_name")
 
 _repo="${SOLAR_LOCK_REPO:-$url.git}"
+_ref="${SOLAR_LOCK_REF:-tag=v$pkgver}"   # a release builds exactly its tag
 # The planet textures are CC BY 4.0 (Solar System Scope, https://www.solarsystemscope.com/textures/); they are
 # downloaded here instead of being stored in the repository.
 _tex=https://www.solarsystemscope.com/textures/download
-source=("$_name::git+$_repo"
+source=("$_name::git+$_repo#$_ref"
         "$_tex/2k_sun.jpg"
         "$_tex/2k_mercury.jpg"
         "$_tex/2k_venus_atmosphere.jpg"
@@ -48,11 +51,6 @@ sha256sums=('SKIP'
             'd15239d46f82d3ea13d2b260b5b29b2a382f42f2916dae0694d0387b1204a09d'
             'cb42ea82709741d28b0af44d8b283cbc6dbd0c521a7f0e1e1e010ade00977df6'
             '4b0644b2f3ef259fd0bfaedd9dc52f9e7d9738f65f50363e8c4dd19f650d7334')
-
-pkgver() {
-    cd "$srcdir/$_name"
-    printf 'r%s.%s' "$(git rev-list --count HEAD)" "$(git rev-parse --short HEAD)"
-}
 
 build() {
     cd "$srcdir/$_name"

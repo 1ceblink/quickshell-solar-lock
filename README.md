@@ -26,12 +26,12 @@ downloads the textures (checked against their checksums) and gives you ready-mad
 
 ```sh
 # from the AUR, once it is published there
-yay -S quickshell-solar-lock-git
+yay -S solar-lock
 
-# or build it from a checkout of this repository (a local build uses the committed files)
+# or build the latest main from a checkout of this repository (a local build uses the committed files)
 git clone https://github.com/1ceblink/quickshell-solar-lock.git
 cd quickshell-solar-lock/packaging/arch
-SOLAR_LOCK_REPO=file://$(git rev-parse --show-toplevel) makepkg -si
+SOLAR_LOCK_REPO=file://$(git rev-parse --show-toplevel) SOLAR_LOCK_REF=branch=main makepkg -si
 ```
 
 | Command | What it does |

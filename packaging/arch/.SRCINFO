@@ -1,6 +1,6 @@
-pkgbase = quickshell-solar-lock-git
+pkgbase = solar-lock
 	pkgdesc = Animated, interactive 3D solar-system lockscreen for Wayland (Quickshell) and KDE Plasma
-	pkgver = r0.0000000
+	pkgver = 1.0.0
 	pkgrel = 1
 	url = https://github.com/1ceblink/quickshell-solar-lock
 	arch = any
@@ -12,9 +12,7 @@ pkgbase = quickshell-solar-lock-git
 	depends = qt6-quick3d
 	depends = hyprlock
 	optdepends = plasma-workspace: use it as the KDE Plasma lockscreen (solar-lock-install-kde)
-	provides = quickshell-solar-lock
-	conflicts = quickshell-solar-lock
-	source = quickshell-solar-lock::git+https://github.com/1ceblink/quickshell-solar-lock.git
+	source = quickshell-solar-lock::git+https://github.com/1ceblink/quickshell-solar-lock.git#tag=v1.0.0
 	source = https://www.solarsystemscope.com/textures/download/2k_sun.jpg
 	source = https://www.solarsystemscope.com/textures/download/2k_mercury.jpg
 	source = https://www.solarsystemscope.com/textures/download/2k_venus_atmosphere.jpg
@@ -41,4 +39,4 @@ pkgbase = quickshell-solar-lock-git
 	sha256sums = cb42ea82709741d28b0af44d8b283cbc6dbd0c521a7f0e1e1e010ade00977df6
 	sha256sums = 4b0644b2f3ef259fd0bfaedd9dc52f9e7d9738f65f50363e8c4dd19f650d7334
 
-pkgname = quickshell-solar-lock-git
+pkgname = solar-lock
