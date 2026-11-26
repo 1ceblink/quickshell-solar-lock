@@ -25,14 +25,13 @@ The easiest way: a package installs everything under `/usr/share/quickshell-sola
 downloads the textures (checked against their checksums) and gives you ready-made commands.
 
 ```sh
-# from the AUR, once it is published there
-yay -S solar-lock
-
-# or build the latest main from a checkout of this repository (a local build uses the committed files)
 git clone https://github.com/1ceblink/quickshell-solar-lock.git
 cd quickshell-solar-lock/packaging/arch
-SOLAR_LOCK_REPO=file://$(git rev-parse --show-toplevel) SOLAR_LOCK_REF=branch=main makepkg -si
+makepkg -si
 ```
+
+This builds the latest release (`v1.0.0`) straight from GitHub and installs it with `pacman`. To build the latest
+`main` instead, run `SOLAR_LOCK_REF=branch=main makepkg -si`. An AUR package (`yay -S solar-lock`) is planned.
 
 | Command | What it does |
 | --- | --- |
@@ -228,6 +227,5 @@ textures/                       created by the script, not committed
 - Planet, Sun, Moon and ring textures: [Solar System Scope](https://www.solarsystemscope.com/textures/),
   licensed [CC BY 4.0](https://creativecommons.org/licenses/by/4.0/). They are downloaded by
   `tools/fetch_textures.py` and are not redistributed here. Please credit them if you share screenshots or videos.
-- KDE Plasma support by Eduard Gevorgyan.
 - Built with [Quickshell](https://quickshell.org) and [Qt](https://www.qt.io).
 - Licence: [MIT](LICENSE), except `kde/lockscreen/LockScreen.qml`, which keeps its `GPL-2.0-or-later` header because it follows KDE's own lockscreen. The planet textures are not part of this repository; they are CC BY 4.0 (see above).

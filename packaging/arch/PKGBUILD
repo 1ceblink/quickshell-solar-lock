@@ -1,9 +1,9 @@
 # Maintainer: Armen <108435601+1ceblink@users.noreply.github.com>
 #
-# Build from the AUR:        yay -S solar-lock
-# Build from a checkout (the latest main, for development):
-#   cd packaging/arch && SOLAR_LOCK_REPO=file://$(git rev-parse --show-toplevel) SOLAR_LOCK_REF=branch=main makepkg -si
-#   (a local build uses the committed files, so commit your changes first)
+# Install:                   cd packaging/arch && makepkg -si      (builds the release tag v$pkgver from GitHub)
+# Latest main:               SOLAR_LOCK_REF=branch=main makepkg -si
+# From a local checkout:     SOLAR_LOCK_REPO=file://$(git rev-parse --show-toplevel) makepkg -si   (committed files only)
+# From the AUR (planned):    yay -S solar-lock
 #
 # A release package: it builds exactly the tag v$pkgver. To release: tag the repository, bump pkgver here, run
 # `makepkg --printsrcinfo > .SRCINFO`, and push PKGBUILD and .SRCINFO to the AUR.
