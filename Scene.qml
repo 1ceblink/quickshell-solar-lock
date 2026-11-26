@@ -402,19 +402,22 @@ Rectangle {
         onPointChanged: root.hoverPos = point.position
         onHoveredChanged: if (!hovered) root.hovered = -1
     }
-    // re-test every frame so the hover ring tracks planets moving under a still cursor
+    // every frame: re-test what is under the cursor (planets move under a still mouse) and keep the card
+    // anchored to the hovered body, or to the zoomed-in body when nothing is hovered
     FrameAnimation {
-        running: hover.hovered
+        running: hover.hovered || root.selected !== -1
         onTriggered: {
-            root.hovered = root.hitTest(root.hoverPos.x, root.hoverPos.y)
-            var t = root.hovered !== -1 ? root.screenOf(root.hovered) : null
+            if (hover.hovered) root.hovered = root.hitTest(root.hoverPos.x, root.hoverPos.y)
+            var t = root.shownIndex !== -1 ? root.screenOf(root.shownIndex) : null
             if (t) { root.ringX = t.x; root.ringY = t.y; root.ringR = Math.max(16, t.r * 1.25 + 5) }
         }
     }
 
     // tooltip card next to the hovered body
+    // the hovered body wins; otherwise the zoomed-in one keeps its card without hovering
+    readonly property int shownIndex: hovered !== -1 ? hovered : selected
     property int tipIndex: -1
-    onHoveredChanged: if (hovered !== -1) tipIndex = hovered
+    onShownIndexChanged: if (shownIndex !== -1) tipIndex = shownIndex
     readonly property var tipInfo: tipIndex === -2 ? sunInfo : tipIndex >= 0 ? planets[tipIndex] : null
 
     Rectangle {
@@ -428,7 +431,7 @@ Rectangle {
         color: "#1d1632"
         border.width: 0.5
         border.color: root.tipInfo ? Qt.alpha(root.tipInfo.color, 0.7) : "#b3fff1d6"
-        opacity: root.hovered !== -1 ? 0.95 : 0
+        opacity: root.shownIndex !== -1 ? 0.95 : 0
         visible: opacity > 0.01
         Behavior on opacity { NumberAnimation { duration: 140 } }
 
