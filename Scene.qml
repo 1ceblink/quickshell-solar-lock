@@ -135,6 +135,16 @@ Rectangle {
             ambientColor: "#4a3a63"
         }
 
+        // soft light in the hovered body's colour; it lights its neighbours (moon, rocks, nearby planets)
+        PointLight {
+            id: hoverLight
+            color: "white"
+            brightness: 0
+            constantFade: 1
+            linearFade: 0
+            quadraticFade: 0.12
+        }
+
         // sun: textured core plus a few translucent shells for a soft glow
         Node {
             id: sun
@@ -199,6 +209,7 @@ Rectangle {
                 required property int index
                 readonly property vector3d bodyPos: body.scenePosition
                 property real glow: root.hovered === orbit.index ? 1 : 0
+                readonly property color tint: modelData.color
                 Behavior on glow { NumberAnimation { duration: 160 } }
                 Texture {
                     id: bodyTex
@@ -252,7 +263,7 @@ Rectangle {
                             materials: PrincipledMaterial {
                                 baseColorMap: bodyTex
                                 emissiveMap: bodyTex
-                                emissiveFactor: Qt.vector3d(orbit.glow * 0.3, orbit.glow * 0.3, orbit.glow * 0.3)
+                                emissiveFactor: Qt.vector3d(orbit.tint.r * orbit.glow * 0.4, orbit.tint.g * orbit.glow * 0.4, orbit.tint.b * orbit.glow * 0.4)
                                 normalMap: orbit.modelData.normal !== undefined ? bodyNormal : null
                                 normalStrength: 0.9
                                 roughness: 1
@@ -291,6 +302,24 @@ Rectangle {
                             materials: DefaultMaterial {
                                 lighting: DefaultMaterial.NoLighting
                                 diffuseColor: orbit.modelData.atmo !== undefined ? orbit.modelData.atmo : "white"
+                            }
+                        }
+                        // hover halo in the planet's own colour
+                        Repeater3D {
+                            model: [ { k: 0.0245, o: 0.2, b: -3 }, { k: 0.031, o: 0.07, b: -4 } ]
+                            Model {
+                                required property var modelData
+                                visible: orbit.glow > 0.01
+                                readonly property real sc: orbit.modelData.size * modelData.k
+                                source: "#Sphere"
+                                scale: Qt.vector3d(sc, sc, sc)
+                                opacity: modelData.o * orbit.glow
+                                depthBias: modelData.b
+                                pickable: false
+                                materials: DefaultMaterial {
+                                    lighting: DefaultMaterial.NoLighting
+                                    diffuseColor: orbit.modelData.color
+                                }
                             }
                         }
                         // saturn's rings, in the planet's equatorial plane
@@ -338,6 +367,14 @@ Rectangle {
                     var o = rep.objectAt(root.selected)
                     if (o) t = o.bodyPos
                 }
+                var hv = root.hovered
+                if (hv >= 0) {
+                    var ho = rep.objectAt(hv)
+                    if (ho) { hoverLight.position = ho.bodyPos; hoverLight.color = root.planets[hv].color }
+                } else if (hv === -2) {
+                    hoverLight.position = Qt.vector3d(0, 0, 0); hoverLight.color = root.sunInfo.color
+                }
+                hoverLight.brightness += ((hv !== -1 ? 3.5 : 0) - hoverLight.brightness) * Math.min(1, frameTime * 10)
                 var k = Math.min(1, frameTime * 5)
                 origin.position = Qt.vector3d(
                     origin.position.x + (t.x - origin.position.x) * k,
