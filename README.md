@@ -17,7 +17,7 @@ and Qt Quick 3D. Textured planets orbit a glowing Sun behind a clock, and you un
 
 | What | Why |
 | --- | --- |
-| A Wayland compositor with `ext-session-lock-v1` | Hyprland is what this was built and tested on; Sway and others support the protocol too |
+| A Wayland compositor with `ext-session-lock-v1` | Hyprland is what this was built and tested on; Sway and others support the protocol too. On KDE Plasma see [KDE Plasma](#kde-plasma) |
 | [`quickshell`](https://archlinux.org/packages/extra/x86_64/quickshell/) | Runs the lock |
 | `qt6-quick3d` | The 3D scene |
 | `hyprlock` | Provides `/etc/pam.d/hyprlock` for the password check, and is the crash fallback |
@@ -81,6 +81,38 @@ hl.bind("SUPER + L", hl.dsp.exec_cmd(os.getenv("HOME") .. "/.local/share/quicksh
 ```
 
 The same script works for an idle daemon (for example `lock_cmd` in `hypridle.conf`).
+
+## KDE Plasma
+
+KWin does not implement `ext-session-lock-v1`, so `bin/lock-solar` and `shell.qml` cannot lock a Plasma
+session. Instead the same `Scene.qml` runs inside KDE's own screen locker (`kscreenlocker_greet`), which keeps
+doing the actual locking, the password check, multi-monitor handling and crash recovery.
+Quickshell and `hyprlock` are not needed for this.
+
+```sh
+python3 tools/fetch_textures.py      # if not done yet
+bin/install-kde
+```
+
+How it works: the locker loads its UI from `lockscreen/LockScreen.qml` in the Plasma shell package
+`org.kde.plasma.desktop`. Plasma only serves files that are inside a package, and a user package with that
+name hides the system one completely, so `install-kde`:
+
+- copies `/usr/share/plasma/shells/org.kde.plasma.desktop` to `~/.local/share/plasma/shells/` and replaces
+  only `contents/lockscreen/` with `kde/lockscreen/LockScreen.qml` plus symlinks to `Scene.qml` and `textures/`.
+  Every other file is identical, so the desktop, panels and widgets are unaffected;
+- installs `~/.config/plasma-workspace/env/solar-lock-kde.sh`, which rebuilds that copy from the current
+  system package at every login, so a Plasma update never leaves a stale copy behind.
+
+Test it in a window without locking, then lock with `Meta+L` (keep a TTY logged in the first time):
+
+```sh
+/usr/lib/kscreenlocker_greet --testing
+```
+
+Undo with `bin/uninstall-kde` and log out and back in. Compared with the stock Plasma lockscreen you lose the
+Sleep / Switch User buttons, media controls, the keyboard-layout switcher and the authenticator picker.
+If the QML ever fails to load, KDE shows its built-in fallback lockscreen and the session stays locked.
 
 ## Using it
 

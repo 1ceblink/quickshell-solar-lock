@@ -1,0 +1,82 @@
+#!/bin/sh
+# Use the solar-system scene as KDE Plasma's lockscreen.
+#
+# KDE's screen locker (kscreenlocker_greet) loads its UI from the Plasma shell package
+# "org.kde.plasma.desktop" (lockscreen/LockScreen.qml). Plasma only serves files that are physically
+# inside a package, and a user package with the same name hides the system one completely, so this
+# script builds a user-level copy of the system package in ~/.local/share/plasma/shells/ with only
+# lockscreen/ replaced. The desktop, panels and widgets keep using identical files.
+#
+# Because the copy would go stale after a Plasma update, the script also installs a login hook
+# (~/.config/plasma-workspace/env/) that rebuilds the copy from the current system package every time
+# Plasma starts, before plasmashell runs.
+#
+#   bin/install-kde           build the override and install the login hook
+#   bin/install-kde --quiet   rebuild only (what the login hook runs)
+#
+# Undo with bin/uninstall-kde.
+set -eu
+
+QUIET=0
+[ "${1:-}" = "--quiet" ] && QUIET=1
+say() { [ "$QUIET" = 1 ] || echo "$@"; }
+
+DIR=$(cd "$(dirname "$0")/.." && pwd)
+SYS=/usr/share/plasma/shells/org.kde.plasma.desktop
+SHELLS="${XDG_DATA_HOME:-$HOME/.local/share}/plasma/shells"
+DEST="$SHELLS/org.kde.plasma.desktop"
+MARKER=.solar-lock-override
+HOOK="${XDG_CONFIG_HOME:-$HOME/.config}/plasma-workspace/env/solar-lock-kde.sh"
+
+if [ ! -f "$DIR/textures/2k_earth_daymap.jpg" ]; then
+    echo "solar-lock: textures missing, run 'python3 tools/fetch_textures.py' first" >&2
+    exit 1
+fi
+if [ ! -f "$SYS/metadata.json" ] || [ ! -d "$SYS/contents" ]; then
+    echo "solar-lock: system shell package not found at $SYS" >&2
+    exit 1
+fi
+if [ -e "$DEST" ] && [ ! -f "$DEST/$MARKER" ]; then
+    echo "solar-lock: $DEST exists and was not made by this script; refusing to touch it" >&2
+    exit 1
+fi
+
+# Build the new copy next to the final location, then swap it in, so plasmashell never sees a half-copied package.
+mkdir -p "$SHELLS"
+NEW=$(mktemp -d "$SHELLS/.solar-lock-new.XXXXXX")
+trap 'rm -rf "$NEW"' EXIT
+
+cp -a "$SYS/." "$NEW/"
+rm -rf "$NEW/contents/lockscreen"
+mkdir "$NEW/contents/lockscreen"
+# LockScreen.qml is resolved through the package and must be a real file inside it;
+# Scene.qml and the textures are loaded by the QML engine, which follows symlinks.
+cp "$DIR/kde/lockscreen/LockScreen.qml" "$NEW/contents/lockscreen/LockScreen.qml"
+ln -s "$DIR/Scene.qml" "$NEW/contents/lockscreen/Scene.qml"
+ln -s "$DIR/textures" "$NEW/contents/lockscreen/textures"
+echo "made by quickshell-solar-lock/bin/install-kde from $SYS; remove with bin/uninstall-kde" > "$NEW/$MARKER"
+chmod 755 "$NEW"
+
+if [ -e "$DEST" ]; then
+    OLD="$SHELLS/.solar-lock-old.$$"
+    mv "$DEST" "$OLD"
+    mv "$NEW" "$DEST"
+    rm -rf "$OLD"
+else
+    mv "$NEW" "$DEST"
+fi
+trap - EXIT
+
+if [ "$QUIET" = 0 ]; then
+    mkdir -p "$(dirname "$HOOK")"
+    cat > "$HOOK" <<EOF
+# Rebuild the solar-lock KDE lockscreen override from the current Plasma package at every login.
+# Installed by $DIR/bin/install-kde; removed by bin/uninstall-kde.
+[ -x "$DIR/bin/install-kde" ] && "$DIR/bin/install-kde" --quiet || true
+EOF
+fi
+
+say "Installed: $DEST"
+say "Login hook: $HOOK"
+say "Test without locking:  /usr/lib/kscreenlocker_greet --testing"
+say "Then lock for real with Meta+L (keep a TTY logged in the first time)."

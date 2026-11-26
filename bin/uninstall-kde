@@ -1,0 +1,23 @@
+#!/bin/sh
+# Remove the KDE lockscreen override and login hook created by bin/install-kde,
+# going back to the stock Plasma lockscreen.
+set -eu
+
+DEST="${XDG_DATA_HOME:-$HOME/.local/share}/plasma/shells/org.kde.plasma.desktop"
+HOOK="${XDG_CONFIG_HOME:-$HOME/.config}/plasma-workspace/env/solar-lock-kde.sh"
+
+if [ -f "$HOOK" ]; then
+    rm -f "$HOOK"
+    echo "Removed $HOOK"
+fi
+
+if [ ! -e "$DEST" ]; then
+    echo "No override at $DEST"
+    exit 0
+fi
+if [ ! -f "$DEST/.solar-lock-override" ]; then
+    echo "$DEST was not made by install-kde; leaving it alone" >&2
+    exit 1
+fi
+rm -rf "$DEST"
+echo "Removed $DEST; KDE uses its stock lockscreen again."
