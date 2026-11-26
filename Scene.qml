@@ -17,6 +17,7 @@ Rectangle {
     readonly property real homeZ: 130   // camera distance that fits the whole system
     signal submit(string password)
     signal unlocked()
+    signal edited()   // user typed again: the shell clears its `failed` flag (never assign a bound property here)
 
     // dist/size are artistic, not to scale. tilt = axial tilt (deg), spin = seconds per rotation (negative = retrograde)
     readonly property var planets: [
@@ -479,7 +480,7 @@ Rectangle {
         } else if (event.key === Qt.Key_Escape) {
             password = ""
         } else if (event.text.length === 1 && event.text >= " ") {
-            failed = false
+            root.edited()
             password += event.text
         }
     }

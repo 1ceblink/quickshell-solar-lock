@@ -40,6 +40,7 @@ ShellRoot {
                     lock.locked = false
                     Qt.callLater(Qt.quit)
                 }
+                onEdited: root.failed = false
                 onSubmit: pw => {
                     root.failed = false
                     root.busy = true
