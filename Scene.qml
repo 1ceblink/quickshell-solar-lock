@@ -121,18 +121,13 @@ Rectangle {
         onTriggered: { var n = new Date(); if (Math.floor(n / 60000) !== Math.floor(clock.date / 60000)) clock.date = n }
     }
 
-    // sparse static starfield
-    Repeater {
-        model: 90
-        Rectangle {
-            x: Math.random() * root.width
-            y: Math.random() * root.height
-            width: Math.random() < 0.12 ? 2 : 1
-            height: width
-            radius: width / 2
-            color: "#fff1d6"
-            opacity: 0.12 + Math.random() * 0.4
-        }
+    // starry sky (Solar System Scope 2k_stars.jpg), cropped to fill the screen and faded out with the supernova
+    Image {
+        anchors.fill: parent
+        source: root.tex("2k_stars.jpg")
+        fillMode: Image.PreserveAspectCrop
+        asynchronous: true
+        opacity: 1 - root.space
     }
 
     View3D {

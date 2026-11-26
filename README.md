@@ -17,37 +17,7 @@ clock; hover a planet to learn about it, click to fly in on it, and type your pa
 | **Hyprland**, Sway and other compositors with `ext-session-lock-v1` | [Quickshell](https://quickshell.org) draws the lock and checks the password through PAM | [Hyprland setup](#hyprland-and-other-wayland-compositors) |
 | **KDE Plasma** | The same scene runs inside KDE's own screen locker | [KDE Plasma setup](#kde-plasma) |
 
-> **Use at your own risk.** This is a hobby lockscreen, not a security-audited one. Test it with a spare TTY
-> logged in before you rely on it (see [Safety and recovery](#safety-and-recovery)).
-
-## Install on Arch Linux (package)
-
-The easiest way: a package installs everything under `/usr/share/quickshell-solar-lock`, pulls in the dependencies,
-downloads the textures (checked against their checksums) and gives you ready-made commands.
-
-```sh
-# from the AUR, once it is published there
-yay -S solar-lock
-
-# or build the latest main from a checkout of this repository (a local build uses the committed files)
-git clone https://github.com/1ceblink/quickshell-solar-lock.git
-cd quickshell-solar-lock/packaging/arch
-SOLAR_LOCK_REPO=file://$(git rev-parse --show-toplevel) SOLAR_LOCK_REF=branch=main makepkg -si
-```
-
-| Command | What it does |
-| --- | --- |
-| `solar-lock` | Locks the screen (falls back to `hyprlock` if the lock fails to start) |
-| `solar-lock-preview` | Opens the scene in a window; nothing is locked |
-| `solar-lock-install-kde` / `solar-lock-uninstall-kde` | Set up or remove the [KDE Plasma](#kde-plasma) lockscreen |
-
-Then bind your lock key to `solar-lock` (see [Hyprland setup](#hyprland-and-other-wayland-compositors); the
-package installs the command into your `PATH`, so use `solar-lock` instead of the long path in those snippets) and keep a
-spare TTY logged in the first time ([Safety and recovery](#safety-and-recovery)). To update, rebuild the package.
-
-The rest of this page (manual install) is for other distributions or if you prefer to run it from a clone.
-
-## Quick start (manual install)
+## Quick start
 
 **1. Install the dependencies** (Arch package names):
 
@@ -234,7 +204,8 @@ While you experiment, use `dev.qml` rather than the real lock.
 ## Safety and recovery
 
 - **Keep a TTY open the first time.** Press `Ctrl+Alt+F3`, log in, then return with your session's TTY key
-  (usually `Ctrl+Alt+F1` or `F2`). From the TTY, `pkill qs` stops a stuck lock.
+  (usually `Ctrl+Alt+F1` or `F2`). From the TTY, `pkill qs` stops a stuck lock. **Log out of that TTY when you are
+  done testing:** a TTY left logged in lets anyone at the keyboard get around any screen lock.
 - **If the lock crashes**, Hyprland keeps the session locked and shows a red screen. With
   `allow_session_lock_restore` on, `lock-solar` starts `hyprlock` so you can unlock normally.
 - **Memory:** the lock uses roughly 240 MB while it is running (most of it texture memory) and exits completely
@@ -250,6 +221,22 @@ While you experiment, use `dev.qml` rather than the real lock.
 | The password is always rejected | Check the PAM service name in `shell.qml` (see Customising) |
 | The clock uses a plain font | Install the Scenesa font, or set another `font.family` in the clock block |
 
+## Security notes
+
+- **The compositor does the locking.** On Hyprland and other `ext-session-lock-v1` compositors the compositor itself
+  hides every other window and sends keyboard and mouse input only to the lock while it is active (on KDE Plasma its
+  own screen locker does this). If the lock program crashes, the session stays locked.
+- **The password is checked by PAM**, with the same service as `hyprlock` and your login. The scene never writes it to
+  a log and drops it as soon as PAM has answered.
+- **Failures never leave the screen unlocked.** If the lock fails to start, fails to load or crashes, `lock-solar`
+  uses `hyprlock` instead, and a leftover lock process cannot turn the lock key into a silent no-op.
+- **Downloads are verified.** `tools/fetch_textures.py` checks every texture against a known SHA-256 sum and refuses
+  anything that does not match.
+- **What no screen lock can do:** it protects a running session from someone at the keyboard. It does not protect
+  against other TTYs left logged in, physical attacks on the machine, or code already running as your user. On KDE,
+  `bin/install-kde` runs a small script from this repository's folder at every login, so keep that folder
+  writable only by you.
+
 ## Repository layout
 
 ```text
@@ -258,6 +245,7 @@ shell.qml                       the real lock (Hyprland and other compositors)
 Scene.qml                       the Sun, supernova, clock, password pill and all interaction (shared by every desktop)
 SolarSystem.qml                 the Solar System theme: planets, Moon, asteroid belt
 HearthianSystem.qml             the Hearthian System theme (inspired by Outer Wilds), including the Quantum Moon
+shaders/earth_night.frag        Earth's city lights, shown only on the night side
 dev.qml                         windowed preview, no locking
 bin/lock-solar                  launcher with the hyprlock fallback
 bin/preview                     opens the scene in a window, nothing is locked
@@ -275,6 +263,5 @@ models/                         generated meshes (and your own extracted ones), 
 - Planet, Sun, Moon and ring textures: [Solar System Scope](https://www.solarsystemscope.com/textures/),
   licensed [CC BY 4.0](https://creativecommons.org/licenses/by/4.0/). They are downloaded by
   `tools/fetch_textures.py` and are not redistributed here. Please credit them if you share screenshots or videos.
-- KDE Plasma support by Eduard Gevorgyan.
 - Built with [Quickshell](https://quickshell.org) and [Qt](https://www.qt.io).
 - Licence: [MIT](LICENSE), except `kde/lockscreen/LockScreen.qml`, which keeps its `GPL-2.0-or-later` header because it follows KDE's own lockscreen. The planet textures are not part of this repository; they are CC BY 4.0 (see above). The MIT licence covers this project's code and original assets only: Outer Wilds, its names and its world are the property of Mobius Digital, referenced here as unofficial fan content under the [Mobius Digital Fan Content Policy](https://www.mobiusdigitalgames.com/fan-content-policy.html).

@@ -5,6 +5,8 @@ DIR=$(cd "$(dirname "$(readlink -f "$0")")/.." && pwd)   # follows symlinks, so 
 pgrep -x hyprlock >/dev/null && exit 0
 # textures are downloaded separately (tools/fetch_textures.py); without them use the plain lock
 [ -f "$DIR/textures/2k_earth_daymap.jpg" ] || exec hyprlock
-pgrep -f "$DIR/shell.qml" >/dev/null && exit 0
+# A leftover Quickshell lock process (after a crash, say) must not turn the lock key into a silent no-op, or the
+# screen would stay unlocked. Use hyprlock instead: if the session really is locked already it is simply refused.
+pgrep -f "$DIR/shell.qml" >/dev/null && exec hyprlock
 qs -p "$DIR/shell.qml" && exit 0
 exec hyprlock
