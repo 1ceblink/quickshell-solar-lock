@@ -12,6 +12,7 @@ Rectangle {
     property bool failed: false
     property bool busy: false
     property bool unlocking: false
+    property int selected: -1          // -2 = Sun, 0..7 = planets, -1 = none (overview)
     property bool sceneReady: false   // 3D view is enabled one frame after the first (black) frame
     property int framesSeen: 0
     readonly property real homeZ: 130   // camera distance that fits the whole system
@@ -209,7 +210,7 @@ Rectangle {
 
                 // orbit ring: short flat dashes of constant length and width, so they stay sharp at any angle
                 Node {
-                    opacity: root.hovered === orbit.index ? 0.7 : 0.3
+                    opacity: root.hovered === orbit.index || root.selected === orbit.index ? 0.7 : 0.3
                     Repeater3D {
                         model: Math.round(2 * Math.PI * orbit.modelData.dist / 2.5)
                         Model {
@@ -315,14 +316,50 @@ Rectangle {
             }
         }
 
+        // glide the camera pivot toward the selected body (or back to the centre)
+        FrameAnimation {
+            running: true
+            onTriggered: {
+                var t = Qt.vector3d(0, 0, 0)
+                if (root.selected >= 0) {
+                    var o = rep.objectAt(root.selected)
+                    if (o) t = o.bodyPos
+                }
+                var k = Math.min(1, frameTime * 5)
+                origin.position = Qt.vector3d(
+                    origin.position.x + (t.x - origin.position.x) * k,
+                    origin.position.y + (t.y - origin.position.y) * k,
+                    origin.position.z + (t.z - origin.position.z) * k)
+            }
+        }
+    }
+
+    NumberAnimation { id: zoomAnim; target: cam; property: "z"; duration: 900; easing.type: Easing.InOutCubic }
+
+    // click a body to zoom in on it; click it again (or empty space) to return to the overview
+    function select(i) {
+        introZoom.stop()
+        if (i === selected) i = -1
+        selected = i
+        zoomAnim.stop()
+        zoomAnim.to = i === -2 ? sunInfo.size * 5 + 6 : i >= 0 ? planets[i].size * 5 + 5 : homeZ
+        zoomAnim.start()
     }
 
     WheelHandler {
         onWheel: event => {
             introZoom.stop()
+            zoomAnim.stop()
             cam.z = Math.max(4, Math.min(220, cam.z * (event.angleDelta.y > 0 ? 0.9 : 1.1)))
         }
     }
+    TapHandler {
+        onTapped: eventPoint => {
+            var p = eventPoint.position
+            root.select(root.hitTest(p.x, p.y))
+        }
+    }
+
     HoverHandler {
         id: hover
         cursorShape: root.hovered !== -1 ? Qt.PointingHandCursor : Qt.ArrowCursor

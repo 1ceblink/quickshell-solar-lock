@@ -5,7 +5,7 @@ and Qt Quick 3D. Textured planets orbit a glowing Sun behind a clock, and you un
 (checked through PAM).
 
 - 3D planets with real surface textures, Earth clouds and Moon, Saturn's rings, an asteroid belt and sharp dashed orbits
-- Hover a planet or the Sun for a small card with a short description
+- Hover a planet or the Sun for a small card with a short description; click one to zoom in on it
 - Scroll to zoom; the scene fades in on lock and out on unlock
 - Clock and date, plus a password pill that shows dots as you type
 - Falls back to `hyprlock` if the lock fails to start or crashes
@@ -87,6 +87,7 @@ The same script works for an idle daemon (for example `lock_cmd` in `hypridle.co
 | Action | Result |
 | --- | --- |
 | Hover a planet or the Sun | Ring and description card |
+| Click a planet or the Sun | Camera glides in on it; click it again or empty space to zoom back out |
 | Scroll | Zoom in or out |
 | Type | Dots appear in the pill (the password is never shown) |
 | Backspace / Esc | Delete a character / clear all |
