@@ -1,0 +1,8 @@
+#!/bin/sh
+# Lock the screen with the Quickshell solar-system lock.
+# If it fails to start or crashes, fall back to hyprlock so the session never stays unlocked.
+DIR=$(cd "$(dirname "$0")/.." && pwd)
+pgrep -x hyprlock >/dev/null && exit 0
+pgrep -f "$DIR/shell.qml" >/dev/null && exit 0
+qs -p "$DIR/shell.qml" && exit 0
+exec hyprlock
