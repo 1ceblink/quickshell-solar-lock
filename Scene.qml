@@ -73,11 +73,14 @@ Rectangle {
 
     // fade to black, swap the theme, fade back in. step: +1 = next, -1 = previous
     function switchTheme(step) {
-        if (unlocking || themeAnim.running) return
+        if (unlocking || themeAnim.running || themeSwapping || themeSettling) return
         nextTheme = themes[(themes.indexOf(theme) + step + themes.length) % themes.length]
         themeAnim.start()
     }
     property string nextTheme: theme
+    property bool themeSwapping: false   // the screen is black; the swap waits for a fully black frame to be on screen
+    property int swapFrames: 0
+    property bool themeSettling: false   // the new theme is loading behind the black veil; the fade-in waits until frames are smooth again
     property bool flying: false        // true while the camera is flying in or out: no description card then
 
     property int hovered: -1
@@ -519,21 +522,39 @@ Rectangle {
         id: themeAnim
         ScriptAction { script: { novaAnim.stop(); fadeIn.stop(); introZoom.stop() } }
         NumberAnimation { target: veil; property: "opacity"; to: 1; duration: 220; easing.type: Easing.InQuad }
-        ScriptAction {
-            script: {
-                novaAnim.stop()                              // in case the nova timer fired during the fade
-                root.resetNova()
-                root.hovered = -1
-                root.selected = -1
-                zoomAnim.stop()
-                cam.z = root.homeZ
-                root.theme = root.nextTheme
-                novaTimer.restart()                          // a new theme gets a full 22 minutes before its supernova
-            }
-        }
-        PauseAnimation { duration: 120 }                     // the new theme's first (heavy) frame happens under the veil
-        NumberAnimation { target: veil; property: "opacity"; to: 0; duration: 700; easing.type: Easing.OutCubic }
+        ScriptAction { script: { root.swapFrames = 0; root.themeSwapping = true } }
     }
+    // The load below freezes the scene for a moment, and the frame on screen during a freeze is the last one drawn.
+    // So wait until the fully black frame has been presented before loading anything.
+    FrameAnimation {
+        running: root.themeSwapping
+        onTriggered: if (++root.swapFrames >= 3) root.doSwap()
+    }
+    function doSwap() {
+        themeSwapping = false
+        novaAnim.stop()                              // in case the nova timer fired during the fade
+        resetNova()
+        hovered = -1
+        selected = -1
+        zoomAnim.stop()
+        theme = nextTheme                            // first: the camera distance below is the new theme's
+        cam.z = homeZ
+        novaTimer.restart()                          // a new theme gets a full 22 minutes before its supernova
+        themeSettling = true; settleGood = 0; settleTimeout.restart()
+    }
+    // Loading a theme can freeze the scene for over a second (meshes, shaders). An animation started before that
+    // would be over when the freeze ends, so the fade-in only starts once a few frames in a row are quick again.
+    property int settleGood: 0
+    FrameAnimation {
+        running: root.themeSettling
+        onTriggered: {
+            root.settleGood = frameTime < 0.03 ? root.settleGood + 1 : 0
+            if (root.settleGood >= 4) root.endSettle()
+        }
+    }
+    Timer { id: settleTimeout; interval: 4000; onTriggered: if (root.themeSettling) root.endSettle() }
+    function endSettle() { themeSettling = false; settleTimeout.stop(); themeFadeIn.start() }
+    NumberAnimation { id: themeFadeIn; target: veil; property: "opacity"; to: 0; duration: 700; easing.type: Easing.OutCubic }
     Timer {
         id: novaTimer
         interval: root.novaInterval
@@ -557,7 +578,7 @@ Rectangle {
             }
         }
     }
-    onUnlockingChanged: if (unlocking) { novaAnim.stop(); themeAnim.stop(); resetNova(); fadeIn.stop(); fadeOut.start() }
+    onUnlockingChanged: if (unlocking) { novaAnim.stop(); themeAnim.stop(); themeSwapping = false; themeSettling = false; settleTimeout.stop(); themeFadeIn.stop(); resetNova(); fadeIn.stop(); fadeOut.start() }
 
     Keys.onPressed: event => handleKey(event)
     function handleKey(event) {                  // also called by the blank lock surfaces of other screens (shell.qml)
