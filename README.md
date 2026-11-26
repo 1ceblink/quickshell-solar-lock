@@ -37,7 +37,7 @@ a mismatch can crash the lock.
 ## Install
 
 ```sh
-git clone <this repo> ~/.local/share/quickshell-solar-lock
+git clone https://github.com/1ceblink/quickshell-solar-lock.git ~/.local/share/quickshell-solar-lock
 cd ~/.local/share/quickshell-solar-lock
 
 # download planet textures (CC BY 4.0, see Credits) and build the ring and bump maps
