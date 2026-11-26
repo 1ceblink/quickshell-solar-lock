@@ -28,6 +28,8 @@ Item {
         anchors.fill: parent
         focus: true
 
+        // the user typed again: drop the "wrong password" state (Scene asks, it never clears it itself)
+        onEdited: scene.failed = false
         onSubmit: pw => {
             scene.failed = false
             scene.busy = true
