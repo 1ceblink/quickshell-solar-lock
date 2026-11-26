@@ -3,6 +3,8 @@
 An animated, interactive 3D solar system as your lockscreen. Textured planets orbit a glowing Sun behind a
 clock; hover a planet to learn about it, click to fly in on it, and type your password to unlock.
 
+![Solar Lock: the orbiting solar system, then a flight in on Earth and Saturn with their description cards](docs/solar-lock.gif)
+
 - **Real-looking worlds:** photo textures for every planet, Earth's clouds and Moon, Saturn's rings, an asteroid belt and sharp dashed orbits
 - **Interactive:** hover for a description card, click to zoom in, scroll to zoom
 - **Polished:** fade in on lock, fade out on unlock, clock and date, a password pill with dots
