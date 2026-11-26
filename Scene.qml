@@ -1,7 +1,6 @@
 import QtQuick
 import QtQuick3D
 import QtQuick.Window
-import Quickshell
 
 Rectangle {
     id: root
@@ -85,7 +84,12 @@ Rectangle {
         return best
     }
 
-    SystemClock { id: clock; precision: SystemClock.Minutes }
+    // plain Qt clock (no Quickshell types) so the same scene also runs inside KDE's screen locker
+    QtObject { id: clock; property date date: new Date() }
+    Timer {
+        interval: 1000; running: true; repeat: true
+        onTriggered: { var n = new Date(); if (Math.floor(n / 60000) !== Math.floor(clock.date / 60000)) clock.date = n }
+    }
 
     // sparse static starfield
     Repeater {
