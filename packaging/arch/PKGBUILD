@@ -69,8 +69,8 @@ package() {
     cd "$srcdir/$_name"
     local dest="$pkgdir/usr/share/$_name"
 
-    install -Dm644 shell.qml Scene.qml SolarSystem.qml HearthianSystem.qml dev.qml -t "$dest"
-    install -Dm644 shaders/earth_night.frag -t "$dest/shaders"
+    install -Dm644 shell.qml Scene.qml SolarSystem.qml HearthianSystem.qml BlackHoleSystem.qml dev.qml -t "$dest"
+    install -Dm644 shaders/*.frag -t "$dest/shaders"
     install -Dm755 bin/lock-solar bin/preview bin/install-kde bin/uninstall-kde -t "$dest/bin"
     install -Dm644 kde/lockscreen/LockScreen.qml -t "$dest/kde/lockscreen"
     install -Dm644 textures/*.jpg textures/*.png -t "$dest/textures"

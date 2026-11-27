@@ -53,7 +53,20 @@ Rectangle {
                                              (Math.min(1, novaColor.b + 0.3) * (1 - novaBlue) + 1.0 * novaBlue) * (1 - hot) + 1.0 * hot, 1)
     readonly property real hot: Math.max(0, Math.min(1, (novaGrow - 0.15) / 0.8))
     readonly property color haloCol: Qt.rgba(novaColor.r * (1 - 0.7 * novaBlue), novaColor.g * (1 - 0.5 * novaBlue), novaColor.b, 1)
+    // How far through the current nova cycle we are, 0..1, for themes that play out over it (the Black Hole theme's planets
+    // fall in and are gone by the time it ends). Starts when the scene appears, on a theme switch, and when the supernova
+    // is over; the next supernova always comes at 1.
+    property double cycleStart: Date.now()
+    property double cycleLen: novaInterval
+    property double novaStart: 0
+    property real cycleP: 0
+    function startCycle() { cycleStart = Date.now(); cycleLen = novaInterval }
+    FrameAnimation {
+        running: root.ownCentre
+        onTriggered: root.cycleP = novaAnim.running ? 1 : Math.min(1, (Date.now() - root.cycleStart) / root.cycleLen)
+    }
     property bool sceneReady: false   // 3D view is enabled one frame after the first (black) frame
+    onSceneReadyChanged: if (sceneReady) startCycle()
     property int framesSeen: 0
     readonly property real homeZ: system && system.homeZ ? system.homeZ : 130   // camera distance that fits the whole system (per theme)
     signal submit(string password)
@@ -63,9 +76,12 @@ Rectangle {
     // ---- themes ---------------------------------------------------------------------------------------------
     // Each theme is its own file with its bodies and their descriptions; the Sun and the supernova are shared.
     // `theme` is the one shown when the lock starts; Up/Down (with an empty password) or the corner button switch it.
-    property string theme: "solar"
-    readonly property var themes: ["solar", "hearthian"]
+    property string startTheme: "solar"   // the shell passes the theme remembered from the last lock (an unknown name is ignored)
+    property string theme: themes.indexOf(startTheme) >= 0 ? startTheme : "solar"
+    signal themeSelected(string name)     // the user switched theme: the shell remembers it
+    readonly property var themes: ["solar", "hearthian", "blackhole"]
     readonly property var system: systemLoader.item
+    readonly property bool ownCentre: system ? system.ownCentre === true : false   // the theme draws its own centre instead of the Sun (the supernova still plays there)
     readonly property var planets: system ? system.planets : []
     readonly property var sunInfo: system ? system.sunInfo : ({ "name": "Sun", "size": 3.5, "color": "#ffb12e", "desc": "" })
     readonly property var moonInfo: system ? system.moonInfo : null   // the solar theme's Moon (target -3); null if none
@@ -175,6 +191,7 @@ Rectangle {
             property real glow: root.hovered === -2 ? 1 : 0
             Behavior on glow { NumberAnimation { duration: 160 } }
             Model {
+                visible: !root.ownCentre
                 property int planetIndex: -2
                 source: "#Sphere"
                 scale: root.sunS
@@ -189,6 +206,7 @@ Rectangle {
             Repeater3D {
                 model: [ { s: 0.078, o: 0.16, b: -2 }, { s: 0.092, o: 0.08, b: -1 }, { s: 0.115, o: 0.04, b: 0 } ]
                 Model {
+                    visible: !root.ownCentre
                     required property var modelData
                     source: "#Sphere"
                     scale: Qt.vector3d(modelData.s * root.sunScale, modelData.s * root.sunScale, modelData.s * root.sunScale)
@@ -259,10 +277,11 @@ Rectangle {
         // the theme's own bodies (planets, moons, belts, orbits); only one theme is loaded at a time
         Loader3D {
             id: systemLoader
-            sourceComponent: root.theme === "hearthian" ? hearthianComp : solarComp
+            sourceComponent: root.theme === "hearthian" ? hearthianComp : root.theme === "blackhole" ? blackHoleComp : solarComp
         }
         Component { id: solarComp; SolarSystem { scene: root } }
         Component { id: hearthianComp; HearthianSystem { scene: root } }
+        Component { id: blackHoleComp; BlackHoleSystem { scene: root } }
 
         // glide the camera pivot toward the selected body (or back to the centre)
         FrameAnimation {
@@ -504,7 +523,7 @@ Rectangle {
         }
         PauseAnimation { duration: 350 }
         NumberAnimation { target: veil; property: "opacity"; to: 1; duration: 1100; easing.type: Easing.InOutQuad }    // white fades to black
-        ScriptAction { script: root.resetNova() }
+        ScriptAction { script: { root.resetNova(); root.cycleStart = Date.now(); root.cycleLen = Math.max(60000, root.novaInterval - (Date.now() - root.novaStart)) } }   // new cycle, so the next one ends exactly when the timer fires
         PauseAnimation { duration: 2500 }                                                                               // the black moment
         ParallelAnimation {                                                                                             // everything comes back
             NumberAnimation { target: veil; property: "opacity"; to: 0; duration: 1600; easing.type: Easing.OutCubic }
@@ -513,7 +532,7 @@ Rectangle {
     }
     SequentialAnimation {
         id: themeAnim
-        ScriptAction { script: { novaAnim.stop(); fadeIn.stop(); introZoom.stop() } }
+        ScriptAction { script: { novaAnim.stop(); fadeIn.stop(); introZoom.stop(); themeFadeIn.stop() } }   // themeFadeIn too: two animations on the veil would fight (flicker)
         NumberAnimation { target: veil; property: "opacity"; to: 1; duration: 220; easing.type: Easing.InQuad }
         ScriptAction { script: { root.swapFrames = 0; root.themeSwapping = true } }
     }
@@ -531,8 +550,10 @@ Rectangle {
         selected = -1
         zoomAnim.stop()
         theme = nextTheme                            // first: the camera distance below is the new theme's
+        themeSelected(theme)
         cam.z = homeZ
         novaTimer.restart()                          // a new theme gets a full 22 minutes before its supernova
+        startCycle()
         themeSettling = true; settleGood = 0; settleTimeout.restart()
     }
     // Loading a theme can freeze the scene for over a second (meshes, shaders). An animation started before that
@@ -546,14 +567,14 @@ Rectangle {
         }
     }
     Timer { id: settleTimeout; interval: 4000; onTriggered: if (root.themeSettling) root.endSettle() }
-    function endSettle() { themeSettling = false; settleTimeout.stop(); themeFadeIn.start() }
+    function endSettle() { themeSettling = false; settleTimeout.stop(); gc(); themeFadeIn.start() }   // gc(): free the old theme now, under the black veil
     NumberAnimation { id: themeFadeIn; target: veil; property: "opacity"; to: 0; duration: 700; easing.type: Easing.OutCubic }
     Timer {
         id: novaTimer
         interval: root.novaInterval
         running: root.sceneReady && !root.unlocking
         repeat: true
-        onTriggered: if (!novaAnim.running) novaAnim.start()
+        onTriggered: if (!novaAnim.running) { root.novaStart = Date.now(); novaAnim.start() }
     }
 
     // Qt Quick 3D's one-off setup stalls the first frame by ~240 ms. Show the black lock surface straight
@@ -584,7 +605,7 @@ Rectangle {
             if (root.selected !== -1) root.select(root.selected)   // Esc first leaves the zoom ...
             else password = ""                                     // ... and otherwise clears the password
         } else if ((event.key === Qt.Key_Up || event.key === Qt.Key_Down) && password.length === 0) {
-            root.switchTheme(event.key === Qt.Key_Up ? 1 : -1)   // only with an empty password, so typing can never trigger it
+            if (!event.isAutoRepeat) root.switchTheme(event.key === Qt.Key_Up ? 1 : -1)   // only with an empty password, so typing can never trigger it; a held key switches once
         } else if (event.text.length === 1 && event.text >= " ") {
             root.edited()
             password += event.text

@@ -52,7 +52,7 @@ mkdir "$NEW/contents/lockscreen"
 # LockScreen.qml is resolved through the package and must be a real file inside it;
 # Scene.qml, the theme files and the textures are loaded by the QML engine, which follows symlinks.
 cp "$DIR/kde/lockscreen/LockScreen.qml" "$NEW/contents/lockscreen/LockScreen.qml"
-for f in Scene.qml SolarSystem.qml HearthianSystem.qml; do
+for f in Scene.qml SolarSystem.qml HearthianSystem.qml BlackHoleSystem.qml; do
     ln -s "$DIR/$f" "$NEW/contents/lockscreen/$f"
 done
 ln -s "$DIR/textures" "$NEW/contents/lockscreen/textures"

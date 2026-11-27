@@ -87,6 +87,7 @@ main() {
     if [ "$DIR" = "$DEST" ]; then
         if confirm "Delete $DIR (about $(du -sh "$DIR" | cut -f1))?"; then
             rm -rf "$DIR"
+            rm -f "$STATE/theme"                 # the remembered theme
             rmdir "$STATE" 2>/dev/null || true
             echo "removed $DIR"
         fi

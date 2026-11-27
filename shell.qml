@@ -15,6 +15,16 @@ ShellRoot {
     property bool capsLock: false
     property string layoutCode: ""
 
+    // The theme you picked last time: kept in ~/.local/state/quickshell-solar-lock/theme (one word)
+    readonly property string themePath: (Quickshell.env("XDG_STATE_HOME") || (Quickshell.env("HOME") + "/.local/state")) + "/quickshell-solar-lock/theme"
+    FileView { id: themeFile; path: root.themePath; blockLoading: true; printErrors: false }
+    readonly property string savedTheme: { try { return themeFile.text().trim() } catch (e) { return "" } }
+    Process {
+        id: saveTheme
+        property string value: ""
+        command: ["sh", "-c", 'mkdir -p "$(dirname "$1")" && printf %s "$2" > "$1"', "sh", root.themePath, value]   // the theme name is a plain argument, never part of the script
+    }
+
     // Caps Lock and the active keyboard layout, from Hyprland (nothing is shown if hyprctl is unavailable)
     Process {
         id: kbProbe
@@ -94,6 +104,8 @@ ShellRoot {
             layoutCode: root.layoutCode
             busy: root.busy
             unlocking: root.unlocking
+            startTheme: root.savedTheme
+            onThemeSelected: name => { saveTheme.value = name; saveTheme.running = true }
             onUnlocked: {
                 lock.locked = false
                 Qt.callLater(Qt.quit)
