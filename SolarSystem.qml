@@ -14,7 +14,7 @@ Node {
     property bool collapse: false
     property real horizonR: 1.2                       // the hole's radius: a planet is gone once it reaches it
     readonly property real progress: collapse ? scene.cycleP : 0
-    readonly property var deaths: [0.30, 0.42, 0.54, 0.64, 0.76, 0.86, 0.93, 0.985]   // when each planet is swallowed (share of the cycle)
+    readonly property var deaths: [0.28, 0.40, 0.52, 0.62, 0.74, 0.84, 0.91, 0.955]   // when each planet is swallowed (share of the cycle); the rest is the hole's finale
     signal swallowed(int index)
 
     // dist/size are artistic, not to scale. tilt = axial tilt (deg), spin = seconds per rotation (negative = retrograde)

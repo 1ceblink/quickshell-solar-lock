@@ -27,7 +27,8 @@ Rectangle {
     property real novaGrow: 0          // 0 -> 1: swells slowly (about 2.8 s); still growing when the blast starts
     property real blastGlow: 0         // 0 -> 1: the flood of light that fills the screen
     readonly property bool novaOn: novaBuild > 0.001
-    readonly property real space: novaOn ? Math.min(1, novaBuild * 1.2) : 0   // background and UI fade to black space
+    readonly property real finale: system && system.finale !== undefined ? system.finale : 0   // a theme's own slow fade to black (the Black Hole swelling over the screen)
+    readonly property real space: Math.max(novaOn ? Math.min(1, novaBuild * 1.2) : 0, finale)   // background and UI fade to black space
     readonly property real sunScale: (1 - 0.55 * novaBuild) * (1 - 0.45 * novaBlue) * (1 + 0.6 * novaGrow)
     readonly property real heat: Math.max(0, Math.min(1, (novaGrow - 0.02) / 0.32))   // the lit white-blue star builds up as it swells
     readonly property real sunR: 3.5 * sunScale
@@ -53,18 +54,27 @@ Rectangle {
                                              (Math.min(1, novaColor.b + 0.3) * (1 - novaBlue) + 1.0 * novaBlue) * (1 - hot) + 1.0 * hot, 1)
     readonly property real hot: Math.max(0, Math.min(1, (novaGrow - 0.15) / 0.8))
     readonly property color haloCol: Qt.rgba(novaColor.r * (1 - 0.7 * novaBlue), novaColor.g * (1 - 0.5 * novaBlue), novaColor.b, 1)
-    // How far through the current nova cycle we are, 0..1, for themes that play out over it (the Black Hole theme's planets
-    // fall in and are gone by the time it ends). Starts when the scene appears, on a theme switch, and when the supernova
-    // is over; the next supernova always comes at 1.
+    // How far through the current cycle we are, 0..1, for themes that play out over it (the Black Hole theme's planets fall in
+    // and it swells over the screen). Starts when the scene appears, on a theme switch, and when the theme's ending is over.
+    // A theme with `ownEnding` ends its cycle itself (system.finaleT reaching 1 calls startEnding()) and has no supernova.
     property double cycleStart: Date.now()
     property double cycleLen: novaInterval
-    property double novaStart: 0
+    property real cycleBias: 0           // a hand-made fast-forward adds to the progress (see fastForward)
     property real cycleP: 0
-    function startCycle() { cycleStart = Date.now(); cycleLen = novaInterval }
+    property bool endHold: false         // the ending's black moment: the cycle stays at its end until the reset
+    function startCycle() { biasAnim.stop(); cycleBias = 0; cycleStart = Date.now(); cycleLen = novaInterval }
+    NumberAnimation { id: biasAnim; target: root; property: "cycleBias"; duration: 10000; easing.type: Easing.InOutQuad }
+    function fastForward() {
+        biasAnim.stop()
+        biasAnim.from = cycleBias
+        biasAnim.to = cycleBias + 1 - Math.min(1, (Date.now() - cycleStart) / cycleLen + cycleBias)
+        biasAnim.start()
+    }
     FrameAnimation {
         running: root.ownCentre
-        onTriggered: root.cycleP = novaAnim.running ? 1 : Math.min(1, (Date.now() - root.cycleStart) / root.cycleLen)
+        onTriggered: root.cycleP = root.endHold ? 1 : Math.min(1, (Date.now() - root.cycleStart) / root.cycleLen + root.cycleBias)
     }
+    readonly property bool ending: novaAnim.running || endAnim.running   // the supernova, or a theme's own ending, is playing
     property bool sceneReady: false   // 3D view is enabled one frame after the first (black) frame
     onSceneReadyChanged: if (sceneReady) startCycle()
     property int framesSeen: 0
@@ -81,7 +91,8 @@ Rectangle {
     signal themeSelected(string name)     // the user switched theme: the shell remembers it
     readonly property var themes: ["solar", "hearthian", "blackhole"]
     readonly property var system: systemLoader.item
-    readonly property bool ownCentre: system ? system.ownCentre === true : false   // the theme draws its own centre instead of the Sun (the supernova still plays there)
+    readonly property bool ownCentre: system ? system.ownCentre === true : false   // the theme draws its own centre instead of the Sun
+    readonly property bool ownEnding: system ? system.ownEnding === true : false   // and ends each cycle its own way: no supernova
     readonly property var planets: system ? system.planets : []
     readonly property var sunInfo: system ? system.sunInfo : ({ "name": "Sun", "size": 3.5, "color": "#ffb12e", "desc": "" })
     readonly property var moonInfo: system ? system.moonInfo : null   // the solar theme's Moon (target -3); null if none
@@ -192,6 +203,8 @@ Rectangle {
             Behavior on glow { NumberAnimation { duration: 160 } }
             Model {
                 visible: !root.ownCentre
+                eulerRotation.x: root.charge * 1.0 * Math.sin(root.fxTime * 14)      // the charge: only the surface shimmers, a degree or so
+                eulerRotation.z: root.charge * 1.0 * Math.cos(root.fxTime * 17)
                 property int planetIndex: -2
                 source: "#Sphere"
                 scale: root.sunS
@@ -210,7 +223,7 @@ Rectangle {
                     required property var modelData
                     source: "#Sphere"
                     scale: Qt.vector3d(modelData.s * root.sunScale, modelData.s * root.sunScale, modelData.s * root.sunScale)
-                    opacity: modelData.o * (1 + 1.8 * sun.glow + 3.0 * root.novaBuild) * (1 - root.heat)
+                    opacity: modelData.o * (1 + 1.8 * sun.glow + 3.0 * root.novaBuild + 1.1 * root.charge) * (1 - root.heat)
                     depthBias: modelData.b
                     pickable: false
                     materials: DefaultMaterial {
@@ -322,6 +335,39 @@ Rectangle {
             var p = eventPoint.position
             if (themeButton.contains(themeButton.mapFromItem(root, p.x, p.y))) { root.switchTheme(1); return }
             root.select(root.hitTest(p.x, p.y))
+        }
+    }
+
+    // Hidden: hold a click on the Sun (the black hole, in that theme) for about 3 seconds and it goes supernova. After a short
+    // dead zone, so an ordinary click never shows anything, the Sun's surface shimmers a little and its glow builds (`charge`, 0..1); letting go,
+    // or sliding off the Sun, drains it. Nothing on screen mentions it.
+    property real charge: 0
+    property real holdTime: 0
+    property bool holding: false
+    property bool fired: false                  // the supernova has been set off: the charge now eases out instead of vanishing
+    readonly property real holdDelay: 0.5       // seconds of holding before anything shows
+    readonly property real holdNeeded: 3.0      // seconds of holding for the supernova
+    function holdOnSun() { return hitTest(sunHold.point.position.x, sunHold.point.position.y) === -2 }
+    PointHandler {
+        id: sunHold
+        acceptedButtons: Qt.LeftButton
+        onActiveChanged: root.holding = active && root.holdOnSun()
+    }
+    FrameAnimation {
+        running: root.holding || root.holdTime > 0
+        onTriggered: {
+            if (root.holding && !root.unlocking && !root.ending && !themeAnim.running && !root.themeSwapping && !root.themeSettling && root.holdOnSun())
+                root.holdTime += frameTime
+            else
+                root.holdTime = Math.max(0, root.holdTime - frameTime * (root.fired ? 1.0 : 5))   // let go early: drains five times faster than it builds; after the supernova starts: gently, over about 2.5 s
+            if (root.holdTime <= 0) root.fired = false
+            root.charge = Math.max(0, Math.min(1, (root.holdTime - root.holdDelay) / (root.holdNeeded - root.holdDelay)))
+            if (root.charge >= 1 && !root.fired) {
+                root.fired = true
+                root.holding = false          // one hold, one supernova: the finger may stay down
+                root.holdTime = root.holdNeeded
+                root.startNova(true)
+            }
         }
     }
 
@@ -503,6 +549,27 @@ Rectangle {
     // white-blue flash that covers the whole screen at the blast; the black veil then fades in over it
     Rectangle { id: flash; anchors.fill: parent; z: 999; color: "#e6f4ff"; opacity: 0 }
 
+    // start the supernova. `manual`: set off by hand (hold a click on the Sun), so the 22-minute timer starts over. A theme that
+    // ends its own cycle (the Black Hole) has no supernova: by hand it skips ahead to its ending instead.
+    function startNova(manual) {
+        if (ending) return
+        if (ownEnding) { if (manual) fastForward(); return }
+        if (manual) novaTimer.restart()
+        novaAnim.start()
+    }
+    // the theme's own ending: it has taken the whole screen. Hold the black for a moment, put everything back unseen under
+    // the veil, and fade the new cycle in.
+    function startEnding() { if (!ending) { endHold = true; endAnim.start() } }
+    SequentialAnimation {
+        id: endAnim
+        PauseAnimation { duration: 2200 }
+        ScriptAction { script: { veil.opacity = 1; root.endHold = false; root.resetNova(); root.startCycle() } }
+        PauseAnimation { duration: 900 }
+        ParallelAnimation {
+            NumberAnimation { target: veil; property: "opacity"; to: 0; duration: 1600; easing.type: Easing.OutCubic }
+            ScriptAction { script: introZoom.restart() }
+        }
+    }
     function resetNova() { novaBuild = 0; novaBlue = 0; novaGrow = 0; blastGlow = 0; flash.opacity = 0 }
     function resetView() { introZoom.stop(); selected = -1; zoomAnim.stop(); zoomAnim.to = homeZ; zoomAnim.start() }   // back to the overview
 
@@ -523,7 +590,7 @@ Rectangle {
         }
         PauseAnimation { duration: 350 }
         NumberAnimation { target: veil; property: "opacity"; to: 1; duration: 1100; easing.type: Easing.InOutQuad }    // white fades to black
-        ScriptAction { script: { root.resetNova(); root.cycleStart = Date.now(); root.cycleLen = Math.max(60000, root.novaInterval - (Date.now() - root.novaStart)) } }   // new cycle, so the next one ends exactly when the timer fires
+        ScriptAction { script: root.resetNova() }
         PauseAnimation { duration: 2500 }                                                                               // the black moment
         ParallelAnimation {                                                                                             // everything comes back
             NumberAnimation { target: veil; property: "opacity"; to: 0; duration: 1600; easing.type: Easing.OutCubic }
@@ -532,7 +599,7 @@ Rectangle {
     }
     SequentialAnimation {
         id: themeAnim
-        ScriptAction { script: { novaAnim.stop(); fadeIn.stop(); introZoom.stop(); themeFadeIn.stop() } }   // themeFadeIn too: two animations on the veil would fight (flicker)
+        ScriptAction { script: { novaAnim.stop(); endAnim.stop(); endHold = false; fadeIn.stop(); introZoom.stop(); themeFadeIn.stop() } }   // themeFadeIn too: two animations on the veil would fight (flicker)
         NumberAnimation { target: veil; property: "opacity"; to: 1; duration: 220; easing.type: Easing.InQuad }
         ScriptAction { script: { root.swapFrames = 0; root.themeSwapping = true } }
     }
@@ -545,6 +612,7 @@ Rectangle {
     function doSwap() {
         themeSwapping = false
         novaAnim.stop()                              // in case the nova timer fired during the fade
+        endAnim.stop(); endHold = false
         resetNova()
         hovered = -1
         selected = -1
@@ -574,7 +642,7 @@ Rectangle {
         interval: root.novaInterval
         running: root.sceneReady && !root.unlocking
         repeat: true
-        onTriggered: if (!novaAnim.running) { root.novaStart = Date.now(); novaAnim.start() }
+        onTriggered: root.startNova(false)
     }
 
     // Qt Quick 3D's one-off setup stalls the first frame by ~240 ms. Show the black lock surface straight
@@ -592,7 +660,7 @@ Rectangle {
             }
         }
     }
-    onUnlockingChanged: if (unlocking) { novaAnim.stop(); themeAnim.stop(); themeSwapping = false; themeSettling = false; settleTimeout.stop(); themeFadeIn.stop(); resetNova(); fadeIn.stop(); fadeOut.start() }
+    onUnlockingChanged: if (unlocking) { novaAnim.stop(); endAnim.stop(); endHold = false; themeAnim.stop(); themeSwapping = false; themeSettling = false; settleTimeout.stop(); themeFadeIn.stop(); resetNova(); fadeIn.stop(); fadeOut.start() }
 
     Keys.onPressed: event => handleKey(event)
     function handleKey(event) {                  // also called by the blank lock surfaces of other screens (shell.qml)
