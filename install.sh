@@ -41,7 +41,9 @@ if [ "$DEPS" = 1 ]; then
                 read -r ans </dev/tty || ans=n
                 case "$ans" in n|N) die "dependencies are required, rerun with --no-deps if you installed them yourself" ;; esac
             fi
-            sudo pacman -S --needed $MISSING
+            # stdin is the script itself when piped from curl: pacman must read its answers from the terminal,
+            # or it swallows the rest of the script as its reply and aborts
+            sudo pacman -S --needed $MISSING </dev/tty
         else
             say "Dependencies already installed"
         fi
