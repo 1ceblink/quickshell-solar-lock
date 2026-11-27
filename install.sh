@@ -7,22 +7,25 @@
 # Options (pass after `sh -s --` when piping):
 #   --kde        also set up the KDE Plasma lockscreen (bin/install-kde)
 #   --no-deps    skip the pacman step (other distros: install the packages from the README yourself)
-#   --yes        do not ask before running pacman
+#   --yes        do not ask before running pacman or editing your Hyprland config
+#   --no-bind    leave your Hyprland config alone (just print the line to add)
 #
-# It never edits your compositor config: it prints the line to add at the end.
+# On Hyprland it points your lock key (SUPER+L) at bin/lock-solar and turns on allow_session_lock_restore,
+# after asking, with a .bak-solar copy of every file it changes (tools/patch_hypr_bind.py).
 set -eu
 
 REPO=https://github.com/1ceblink/quickshell-solar-lock.git
 DEST="${SOLAR_LOCK_DIR:-$HOME/.local/share/quickshell-solar-lock}"
 PKGS="quickshell qt6-quick3d assimp hyprlock python-pillow python-numpy"
 
-KDE=0 DEPS=1 ASK=1
+KDE=0 DEPS=1 ASK=1 BIND=1
 for a in "$@"; do
     case "$a" in
         --kde) KDE=1 ;;
         --no-deps) DEPS=0 ;;
         --yes|-y) ASK=0 ;;
-        -h|--help) sed -n '2,12p' "$0" 2>/dev/null; exit 0 ;;
+        --no-bind) BIND=0 ;;
+        -h|--help) sed -n '2,15p' "$0" 2>/dev/null; exit 0 ;;
         *) echo "install.sh: unknown option $a" >&2; exit 2 ;;
     esac
 done
@@ -83,13 +86,33 @@ if [ "$KDE" = 1 ]; then
     bin/install-kde
 fi
 
+# 5. Hyprland: point the lock key at the launcher
+HYPRCFG="${XDG_CONFIG_HOME:-$HOME/.config}/hypr"
+BOUND=0
+if [ "$BIND" = 1 ] && [ "$KDE" = 0 ] && { [ -f "$HYPRCFG/hyprland.lua" ] || [ -f "$HYPRCFG/hyprland.conf" ]; }; then
+    say "Hyprland config found in $HYPRCFG"
+    python3 -I tools/patch_hypr_bind.py "$DIR/bin/lock-solar" --check
+    ans=y
+    if [ "$ASK" = 1 ]; then
+        printf 'Apply these changes (a .bak-solar copy is kept)? [Y/n] '
+        read -r ans </dev/tty || ans=n
+    fi
+    case "$ans" in
+        n|N) ;;
+        *) python3 -I tools/patch_hypr_bind.py "$DIR/bin/lock-solar" >/dev/null && BOUND=1 ;;
+    esac
+fi
+
 say "Done"
-cat <<EOF
-Preview in a window (nothing is locked):
-    qs -p $DIR/dev.qml
+echo "Preview in a window (nothing is locked):"
+echo "    qs -p $DIR/dev.qml"
+if [ "$KDE" = 0 ] && [ "$BOUND" = 0 ]; then
+    cat <<EOF
 
 Hyprland: bind your lock key to the launcher, and let it restore the lock after a crash.
     hyprland.conf:  misc { allow_session_lock_restore = true }
                     bind = SUPER, L, exec, $DIR/bin/lock-solar
 EOF
+fi
+[ "$BOUND" = 1 ] && echo "Hyprland reloads its config by itself; SUPER+L now runs the solar lock."
 [ "$KDE" = 1 ] || echo "KDE Plasma: rerun with --kde (or run bin/install-kde)."

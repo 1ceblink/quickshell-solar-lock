@@ -19,7 +19,7 @@ clock; hover a planet to learn about it, click to fly in on it, and type your pa
 
 ## Quick start
 
-One command installs everything: the dependencies (with `pacman`), the code, the textures and the Hearthian meshes. It never edits your compositor config; it prints the line to add at the end.
+One command installs everything: the dependencies (with `pacman`), the code, the textures and the Hearthian meshes. On Hyprland it also points your lock key (`SUPER+L`) at `bin/lock-solar` and turns on `allow_session_lock_restore`: it shows the changes, asks first, and keeps a `.bak-solar` copy of every file it edits (`hyprland.conf` and `hyprland.lua` are both handled). It only rewrites an existing lock bind (`hyprlock`, `loginctl lock-session`, …) or adds one when the key is free; a key bound to anything else is left alone.
 
 **Hyprland and other Wayland compositors:**
 
@@ -33,7 +33,7 @@ curl -fsSL https://raw.githubusercontent.com/1ceblink/quickshell-solar-lock/main
 curl -fsSL https://raw.githubusercontent.com/1ceblink/quickshell-solar-lock/main/install.sh | sh -s -- --kde
 ```
 
-The code goes to `~/.local/share/quickshell-solar-lock`. Run the same command again to update. Other options: `--no-deps` (other distros: install the equivalents of the packages below yourself) and `--yes` (do not ask before running `pacman`).
+The code goes to `~/.local/share/quickshell-solar-lock`. Run the same command again to update. Other options: `--no-deps` (other distros: install the equivalents of the packages below yourself), `--no-bind` (do not touch the Hyprland config) and `--yes` (do not ask before running `pacman` or editing the config).
 
 | Package | Used for |
 | --- | --- |
@@ -63,7 +63,7 @@ On KDE use the test command in the [KDE section](#kde-plasma). Then continue wit
 
 ## Hyprland and other Wayland compositors
 
-`bin/lock-solar` starts the lock and falls back to `hyprlock` if it fails. Point your lock key at it, and let
+`bin/lock-solar` starts the lock and falls back to `hyprlock` if it fails. `install.sh` already points your lock key at it; to do it by hand, bind it yourself and let
 Hyprland restore the lock after a crash.
 
 `hyprland.conf`:
@@ -242,6 +242,7 @@ kde/lockscreen/LockScreen.qml   the KDE greeter UI that hosts Scene.qml
 tools/fetch_textures.py         downloads the textures and builds the ring and bump maps
 packaging/arch/PKGBUILD         Arch Linux package (also the base for the AUR package)
 tools/make_hearthian_meshes.py  generates the Hearthian planet meshes
+tools/patch_hypr_bind.py        points the Hyprland lock key at lock-solar (used by install.sh)
 textures/                       created by the script, not committed
 models/                         generated meshes (and your own extracted ones), not committed
 ```
