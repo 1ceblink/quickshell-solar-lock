@@ -44,6 +44,15 @@ main() {
         return 1
     fi
 
+    # the installed copy may predate --revert: bring a git clone up to date first
+    if ! grep -q -- "--revert" "$DIR/tools/patch_hypr_bind.py" && [ -d "$DIR/.git" ]; then
+        git -C "$DIR" pull --ff-only -q || true
+    fi
+    grep -q -- "--revert" "$DIR/tools/patch_hypr_bind.py" || {
+        echo "uninstall.sh: $DIR is too old to undo the Hyprland change; update it (git pull) and run again" >&2
+        return 1
+    }
+
     # 1. Hyprland: put the old lock bind back
     say "Hyprland config"
     if python3 -I "$DIR/tools/patch_hypr_bind.py" "$DIR/bin/lock-solar" --revert --check; then

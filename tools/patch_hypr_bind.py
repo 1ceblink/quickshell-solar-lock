@@ -13,7 +13,7 @@ The original file is copied to <name>.bak-solar (or .bak-solar-<n>) before anyth
   patch_hypr_bind.py <path to lock-solar> [--check]     --check only prints what would change
   patch_hypr_bind.py <path to lock-solar> --revert      undo it (what uninstall.sh runs); honours --check too
 
---revert restores the newest .bak-solar copy when the file is still exactly what this script made from it. If you have
+--revert uses the newest .bak-solar copy from before lock-solar was bound, and restores it when the file is still exactly what this script made from it. If you have
 edited the file since, it only puts the old lock command back (or removes the bind it added) and keeps your edits.
 """
 import glob
@@ -192,6 +192,26 @@ def revert_lua(cur, bak, target):
     return "\n".join(lines), ["line %d: removed the bind this script added" % (i + 1)]
 
 
+def bind_cmd(text, name):
+    """The command the L bind runs in this config text, or None."""
+    if name.endswith(".lua"):
+        return find_lua_l(text.split("\n"))[3]
+    _, m = find_conf_l(text.split("\n"))
+    return m.group(4) if m else None
+
+
+def pick_backup(baks, name):
+    """Newest backup whose lock bind is not lock-solar itself: the state from before lock-solar was ever set up.
+    (Newest first. A backup made while a previous lock-solar copy was bound is skipped, so the original
+    `hyprlock` bind comes back, not the old copy.) Falls back to the newest backup."""
+    for b in baks:
+        with open(b) as f:
+            cmd = bind_cmd(f.read(), name)
+        if not (cmd and re.search(r"lock-solar|solar-lock", cmd)):
+            return b
+    return baks[0] if baks else ""
+
+
 def backup(path):
     dest, n = path + ".bak-solar", 1
     while os.path.exists(dest):
@@ -218,8 +238,8 @@ def main():
         with open(path) as f:
             old = f.read()
         if revert:
-            baks = sorted(glob.glob(glob.escape(path) + ".bak-solar*"), key=os.path.getmtime)   # newest = made by the last patch
-            bak = baks[-1] if baks else ""
+            baks = sorted(glob.glob(glob.escape(path) + ".bak-solar*"), key=os.path.getmtime, reverse=True)
+            bak = pick_backup(baks, name)
             if not bak:
                 print(path)
                 print("  no .bak-solar copy: nothing to undo")
