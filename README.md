@@ -19,20 +19,21 @@ clock; hover a planet to learn about it, click to fly in on it, and type your pa
 
 ## Quick start
 
-**One step:** `install.sh` does all three steps below (dependencies with `pacman`, the code, the textures and the Hearthian meshes). It never edits your compositor config; it prints the line to add at the end.
+One command installs everything: the dependencies (with `pacman`), the code, the textures and the Hearthian meshes. It never edits your compositor config; it prints the line to add at the end.
+
+**Hyprland and other Wayland compositors:**
 
 ```sh
-git clone https://github.com/1ceblink/quickshell-solar-lock.git ~/.local/share/quickshell-solar-lock
-~/.local/share/quickshell-solar-lock/install.sh          # add --kde for KDE Plasma, --no-deps on other distros
+curl -fsSL https://raw.githubusercontent.com/1ceblink/quickshell-solar-lock/main/install.sh | sh
 ```
 
-Once the repository is public this also works as `curl -fsSL https://raw.githubusercontent.com/1ceblink/quickshell-solar-lock/main/install.sh | sh`, which clones for you. Or follow the manual steps:
-
-**1. Install the dependencies** (Arch package names):
+**KDE Plasma** (the only difference is `--kde`, which also sets up the Plasma lockscreen):
 
 ```sh
-sudo pacman -S quickshell qt6-quick3d assimp hyprlock python-pillow python-numpy
+curl -fsSL https://raw.githubusercontent.com/1ceblink/quickshell-solar-lock/main/install.sh | sh -s -- --kde
 ```
+
+The code goes to `~/.local/share/quickshell-solar-lock`. Run the same command again to update. Other options: `--no-deps` (other distros: install the equivalents of the packages below yourself) and `--yes` (do not ask before running `pacman`).
 
 | Package | Used for |
 | --- | --- |
@@ -40,35 +41,25 @@ sudo pacman -S quickshell qt6-quick3d assimp hyprlock python-pillow python-numpy
 | `qt6-quick3d` | The 3D scene |
 | `hyprlock` | Provides the PAM service for the password check, and the crash fallback (not needed on KDE) |
 | `assimp` | Lets Qt load the Hearthian theme's planet meshes (`.glb`) |
-| `python-pillow` | The texture script below |
-| `python-numpy` | The mesh script below (Hearthian theme) |
+| `python-pillow` | Builds the textures |
+| `python-numpy` | Builds the Hearthian meshes |
 
 Optional: the *Scenesa* font for the clock. Qt uses a default font if it is missing.
 
 Quickshell must be built against the Qt version you have installed. If it warns *"built against Qt X but the
 system has updated to Qt Y"*, update or rebuild the `quickshell` package, because a mismatch can crash the lock.
 
-**2. Get the code and download the textures:**
+The planet textures are not stored in this repository (they are CC BY 4.0, so the installer downloads them, about
+7 MB, and checks every file against a SHA-256 sum). Without them the planets render as untextured blobs, and
+`bin/lock-solar` uses `hyprlock` instead.
 
-```sh
-git clone https://github.com/1ceblink/quickshell-solar-lock.git ~/.local/share/quickshell-solar-lock
-cd ~/.local/share/quickshell-solar-lock
-python3 tools/fetch_textures.py
-python3 tools/make_hearthian_meshes.py
-```
-
-> **The texture step is required.** The planet textures are not stored in this repository (they are CC BY 4.0,
-> so they are downloaded instead). Without them the planets render as untextured blobs, and `bin/lock-solar`
-> refuses to start the scene and uses `hyprlock` instead. The script needs an internet connection and about
-> 7 MB of disk.
-
-**3. Preview it in a window** (Hyprland route; on KDE use the test command in the [KDE section](#kde-plasma)). Nothing is locked, and typing only prints to the terminal:
+**Preview it in a window** (nothing is locked, and typing only prints to the terminal):
 
 ```sh
 qs -p ~/.local/share/quickshell-solar-lock/dev.qml
 ```
 
-Then continue with the setup for your desktop.
+On KDE use the test command in the [KDE section](#kde-plasma). Then continue with the setup for your desktop.
 
 ## Hyprland and other Wayland compositors
 
@@ -102,12 +93,7 @@ KWin does not implement `ext-session-lock-v1`, so `bin/lock-solar` cannot lock a
 same `Scene.qml` runs inside KDE's screen locker (`kscreenlocker_greet`), which keeps doing the real locking,
 the password check, multi-monitor handling and crash recovery. Quickshell and `hyprlock` are not needed.
 
-```sh
-python3 tools/fetch_textures.py      # if you have not done it yet
-bin/install-kde
-```
-
-Test it in a window without locking, then lock with `Meta+L` (keep a TTY logged in the first time):
+`install.sh --kde` (see [Quick start](#quick-start)) has already set it up. Test it in a window without locking, then lock with `Meta+L` (keep a TTY logged in the first time):
 
 ```sh
 /usr/lib/kscreenlocker_greet --testing
@@ -217,7 +203,7 @@ While you experiment, use `dev.qml` rather than the real lock.
 | Problem | Fix |
 | --- | --- |
 | The lock key does nothing | A stuck lock process is blocking it. Run `pkill qs` and try again. Quickshell hot-reloads when files in its folder change and a reload destroys a running lock, which is why `shell.qml` turns file watching off |
-| Planets look flat and untextured, or you get `hyprlock` instead | Run `python3 tools/fetch_textures.py` |
+| Planets look flat and untextured, or you get `hyprlock` instead | Run the install command from the Quick start again |
 | Warning about a Qt version mismatch | Update or rebuild the `quickshell` package |
 | The password is always rejected | Check the PAM service name in `shell.qml` (see Customising) |
 | The clock uses a plain font | Install the Scenesa font, or set another `font.family` in the clock block |
