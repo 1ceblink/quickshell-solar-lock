@@ -298,13 +298,6 @@ Rectangle {
         zoomAnim.start()
     }
 
-    WheelHandler {
-        onWheel: event => {
-            introZoom.stop()
-            zoomAnim.stop()
-            cam.z = Math.max(4, Math.min(220, cam.z * (event.angleDelta.y > 0 ? 0.9 : 1.1)))
-        }
-    }
     TapHandler {
         onTapped: eventPoint => {
             var p = eventPoint.position
