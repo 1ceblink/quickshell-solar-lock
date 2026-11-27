@@ -1,7 +1,8 @@
 #!/usr/bin/env python3
 """Point the Hyprland lock key at bin/lock-solar.
 
-Looks for ~/.config/hypr/hyprland.lua and hyprland.conf. In each file it
+Looks for ~/.config/hypr/hyprland.lua and hyprland.conf and the files they pull in (require/dofile in Lua,
+`source =` in .conf, so a bind that lives in keybinds.lua or binds.conf is found too). In each file it
   - rewrites an existing SUPER+L exec bind whose command looks like a lock command (hyprlock, loginctl
     lock-session, lock-solar, ...) to run bin/lock-solar,
   - adds the bind if the file has no L bind at all,
@@ -39,7 +40,7 @@ def lua_cmd(path):
     return 'os.getenv("HOME") .. "/%s"' % rel if rel else '"%s"' % path
 
 
-def patch_conf(text, target):
+def patch_conf(text, target, add_bind=True, add_opt=True):
     notes, cmd = [], conf_cmd(target)
     lines = text.split("\n")
     found = False
@@ -59,7 +60,7 @@ def patch_conf(text, target):
     if not found:
         if any(re.match(r"^\s*bind[a-z]*\s*=\s*[^,]*,\s*[lL]\s*,", l) for l in lines):
             notes.append("L is bound to something other than exec: left alone, bind your lock key to %s yourself" % cmd)
-        else:
+        elif add_bind:
             if lines and lines[-1] == "":
                 lines.pop()
             lines += ["", "bind = SUPER, L, exec, " + cmd, ""]
@@ -72,13 +73,14 @@ def patch_conf(text, target):
                 notes.append("line %d: allow_session_lock_restore -> true" % (i + 1))
             break
     else:
-        for i, line in enumerate(lines):
-            if re.match(r"^\s*misc\s*\{", line):
-                lines.insert(i + 1, "    allow_session_lock_restore = true")
-                break
-        else:
-            lines += ["misc {", "    allow_session_lock_restore = true", "}", ""]
-        notes.append("added misc:allow_session_lock_restore = true")
+        if add_opt:
+            for i, line in enumerate(lines):
+                if re.match(r"^\s*misc\s*\{", line):
+                    lines.insert(i + 1, "    allow_session_lock_restore = true")
+                    break
+            else:
+                lines += ["misc {", "    allow_session_lock_restore = true", "}", ""]
+            notes.append("added misc:allow_session_lock_restore = true")
     return "\n".join(lines), notes
 
 
@@ -101,7 +103,7 @@ def call_end(s, start):
     return None
 
 
-def patch_lua(text, target):
+def patch_lua(text, target, add_bind=True, add_opt=True):
     notes, cmd = [], lua_cmd(target)
     lines = text.split("\n")
     found = False
@@ -126,7 +128,7 @@ def patch_lua(text, target):
     if not found:
         if any(re.match(r"^\s*hl\.bind\(", l) and re.search(r'[+\s"]L"\s*,', l) for l in lines):
             notes.append("L is bound to something other than exec_cmd: left alone, bind your lock key to %s yourself" % target)
-        else:
+        elif add_bind:
             if lines and lines[-1] == "":
                 lines.pop()
             lines += ["", 'hl.bind("SUPER + L", hl.dsp.exec_cmd(%s))' % cmd, ""]
@@ -139,7 +141,7 @@ def patch_lua(text, target):
             notes.append("allow_session_lock_restore -> true")
         new.append(line)
     text = "\n".join(new)
-    if "allow_session_lock_restore" not in text:
+    if add_opt and "allow_session_lock_restore" not in text:
         notes.append("add `allow_session_lock_restore = true` to the misc table of hl.config yourself")
     return text, notes
 
@@ -162,8 +164,13 @@ def find_lua_l(lines):
     return None, 0, 0, None
 
 
+def made_from(patch, bak, cur, target):
+    """Is `cur` what the patcher makes of `bak` (with or without the bind / misc option added, as an include may hold them)?"""
+    return any(patch(bak, target, add_bind=b, add_opt=o)[0] == cur for b in (True, False) for o in (True, False))
+
+
 def revert_conf(cur, bak, target):
-    if patch_conf(bak, target)[0] == cur:
+    if made_from(patch_conf, bak, cur, target):
         return bak, ["restored the original file"]
     cmd, lines = conf_cmd(target), cur.split("\n")
     i, m = find_conf_l(lines)
@@ -178,7 +185,7 @@ def revert_conf(cur, bak, target):
 
 
 def revert_lua(cur, bak, target):
-    if patch_lua(bak, target)[0] == cur:
+    if made_from(patch_lua, bak, cur, target):
         return bak, ["restored the original file"]
     cmd, lines = lua_cmd(target), cur.split("\n")
     i, a, b, now = find_lua_l(lines)
@@ -222,6 +229,38 @@ def backup(path):
     return dest
 
 
+def includes(path, text):
+    """Existing files that `path` pulls in: `source = ...` in .conf, require("a.b") / dofile("x.lua") in Lua."""
+    here, base, out = os.path.dirname(path), os.path.dirname(path), []
+    if path.endswith(".lua"):
+        for mod in re.findall(r"(?<![\w.])require\s*\(?\s*[\"']([\w./-]+)[\"']", text):
+            rel = mod.replace(".", "/")
+            out += [os.path.join(base, rel + ".lua"), os.path.join(base, rel, "init.lua")]
+        for f in re.findall(r"(?<![\w.])(?:dofile|loadfile)\s*\(?\s*[\"']([^\"']+\.lua)[\"']", text):
+            out.append(os.path.join(here, os.path.expanduser(f)))
+    else:
+        for line in text.split("\n"):
+            m = re.match(r"^\s*source\s*=\s*(.+?)\s*$", line)
+            if m:
+                pat = os.path.expanduser(m.group(1))
+                out += sorted(glob.glob(pat if os.path.isabs(pat) else os.path.join(here, pat)))
+    return [f for f in out if os.path.isfile(f)]
+
+
+def config_files(base):
+    """(path, kind) for the main configs and everything they include, each once, main files first."""
+    seen, files, queue = set(), [], [os.path.join(base, n) for n in ("hyprland.lua", "hyprland.conf")]
+    while queue:
+        path = os.path.realpath(queue.pop(0))
+        if path in seen or not os.path.isfile(path):
+            continue
+        seen.add(path)
+        files.append(path)
+        with open(path) as f:
+            queue += includes(path, f.read())
+    return files
+
+
 def main():
     args = [a for a in sys.argv[1:] if not a.startswith("--")]
     check, revert = "--check" in sys.argv, "--revert" in sys.argv
@@ -229,25 +268,37 @@ def main():
         sys.exit(__doc__)
     target = os.path.abspath(args[0])
     base = os.path.join(os.environ.get("XDG_CONFIG_HOME") or os.path.expanduser("~/.config"), "hypr")
-    found = False
-    for name, patch, undo in (("hyprland.lua", patch_lua, revert_lua), ("hyprland.conf", patch_conf, revert_conf)):
-        path = os.path.join(base, name)
-        if not os.path.isfile(path):
-            continue
-        found = True
+    files = config_files(base)
+    texts = {}
+    for path in files:
         with open(path) as f:
-            old = f.read()
+            texts[path] = f.read()
+    main_files = [p for p in files if os.path.basename(p) in ("hyprland.lua", "hyprland.conf") and os.path.dirname(p) == os.path.realpath(base)]
+    # a bind or the misc option that lives in an included file must not be added a second time in the main one
+    inc = [p for p in files if p not in main_files]
+    has_bind = any(re.search(r"^\s*(bind[a-z]*\s*=\s*[^,]*,\s*[lL]\s*,|hl\.bind\(.*[+\s\"]L\"\s*,)", texts[p], re.M) for p in inc)
+    has_opt = any("allow_session_lock_restore" in texts[p] for p in inc)
+    for path in files:
+        name = os.path.basename(path)
+        lua = path.endswith(".lua")
+        patch, undo = (patch_lua, revert_lua) if lua else (patch_conf, revert_conf)
+        old = texts[path]
         if revert:
             baks = sorted(glob.glob(glob.escape(path) + ".bak-solar*"), key=os.path.getmtime, reverse=True)
-            bak = pick_backup(baks, name)
+            bak = pick_backup(baks, name if lua else "x.conf")
             if not bak:
-                print(path)
-                print("  no .bak-solar copy: nothing to undo")
+                if path in main_files:
+                    print(path)
+                    print("  no .bak-solar copy: nothing to undo")
                 continue
             with open(bak) as f:
                 new, notes = undo(old, f.read(), target)
         else:
-            new, notes = patch(old, target)
+            # only the first main file (hyprland.lua before hyprland.conf) gets a bind added, and only if no file has one
+            main = path in main_files
+            new, notes = patch(old, target, add_bind=main and not has_bind, add_opt=main and not has_opt)
+            if not notes:
+                continue
         print(path)
         for n in notes:
             print("  " + n)
@@ -258,9 +309,9 @@ def main():
                 f.write(new)
             if revert and notes == ["restored the original file"]:
                 os.remove(bak)
-    if not found:
+    if not files:
         print("no Hyprland config found in %s" % base)
-    sys.exit(0 if found else 3)
+    sys.exit(0 if files else 3)
 
 
 if __name__ == "__main__":
