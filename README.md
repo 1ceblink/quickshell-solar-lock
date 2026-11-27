@@ -6,7 +6,7 @@ clock; hover a planet to learn about it, click to fly in on it, and type your pa
 ![Solar Lock: the orbiting solar system with a clock, then a flight in on Earth and Saturn with their description cards](docs/solar-lock.gif)
 
 - **Real-looking worlds:** photo textures for every planet, Earth's clouds and Moon, Saturn's rings, an asteroid belt and sharp dashed orbits
-- **Interactive:** hover a planet, the Moon or the Sun for a description card, click to zoom in, scroll to zoom
+- **Interactive:** hover a planet, the Moon or the Sun for a description card, click to zoom in
 - **Two themes:** the real Solar System, or a second, made-up *Hearthian System* with its own planets and effects (see [Themes](#themes))
 - **Supernova:** every 22 minutes of being locked the textured Sun slowly shrinks into a small white sphere, turns blue and swells in a growing glow, then the whole screen blows out white and fades to black before everything fades back in
 - **Polished:** fade in on lock, fade out on unlock, clock and date, a password pill with dots
@@ -129,7 +129,6 @@ fallback lockscreen and the session stays locked.
 | --- | --- |
 | Hover a planet, the Moon or the Sun | The body glows softly in its own colour and a card shows its name, orbit and a short description |
 | Click a planet, the Moon or the Sun | The camera glides in on it, and its description card appears once the zoom has finished; click it again, or empty space, to zoom back out |
-| Scroll | Zoom in or out |
 | Up / Down (password empty) or the button in the bottom-right corner | Switch theme (see [Themes](#themes)) |
 | Type | Dots appear in the pill (the password itself is never shown) |
 | Caps Lock, layout | A small chip above the pill shows the active keyboard layout (`US`, `RU`, …) and an amber `CAPS LOCK` chip appears while it is on (Hyprland only: it reads them from `hyprctl`) |
