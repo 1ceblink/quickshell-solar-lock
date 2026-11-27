@@ -19,6 +19,15 @@ clock; hover a planet to learn about it, click to fly in on it, and type your pa
 
 ## Quick start
 
+**One step:** `install.sh` does all three steps below (dependencies with `pacman`, the code, the textures and the Hearthian meshes). It never edits your compositor config; it prints the line to add at the end.
+
+```sh
+git clone https://github.com/1ceblink/quickshell-solar-lock.git ~/.local/share/quickshell-solar-lock
+~/.local/share/quickshell-solar-lock/install.sh          # add --kde for KDE Plasma, --no-deps on other distros
+```
+
+Once the repository is public this also works as `curl -fsSL https://raw.githubusercontent.com/1ceblink/quickshell-solar-lock/main/install.sh | sh`, which clones for you. Or follow the manual steps:
+
 **1. Install the dependencies** (Arch package names):
 
 ```sh
@@ -241,6 +250,7 @@ shaders/earth_night.frag        Earth's city lights, shown only on the night sid
 dev.qml                         windowed preview, no locking
 bin/lock-solar                  launcher with the hyprlock fallback
 bin/preview                     opens the scene in a window, nothing is locked
+install.sh                      one-step setup: dependencies, code, textures, meshes
 bin/install-kde, uninstall-kde  KDE Plasma setup and removal
 kde/lockscreen/LockScreen.qml   the KDE greeter UI that hosts Scene.qml
 tools/fetch_textures.py         downloads the textures and builds the ring and bump maps
