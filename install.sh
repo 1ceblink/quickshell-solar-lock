@@ -47,6 +47,9 @@ if [ "$DEPS" = 1 ]; then
             # stdin is the script itself when piped from curl: pacman must read its answers from the terminal,
             # or it swallows the rest of the script as its reply and aborts
             sudo pacman -S --needed $MISSING </dev/tty
+            # remember what we added, so uninstall.sh --packages can offer to remove exactly that
+            STATE="${XDG_STATE_HOME:-$HOME/.local/state}/quickshell-solar-lock"
+            mkdir -p "$STATE" && printf '%s\n' $MISSING >> "$STATE/packages"
         else
             say "Dependencies already installed"
         fi
@@ -57,7 +60,7 @@ fi
 command -v python3 >/dev/null 2>&1 || die "python3 is required"
 
 # 2. code: use the checkout this script lives in, otherwise clone or update the default location
-HERE=$(cd "$(dirname "$0")" 2>/dev/null && pwd || true)
+HERE=; [ -f "$0" ] && HERE=$(cd "$(dirname "$0")" 2>/dev/null && pwd || true)   # piped from curl: $0 is just "sh"
 if [ -n "$HERE" ] && [ -f "$HERE/shell.qml" ] && [ -f "$HERE/tools/fetch_textures.py" ]; then
     DIR=$HERE
 else

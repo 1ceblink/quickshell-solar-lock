@@ -61,6 +61,14 @@ qs -p ~/.local/share/quickshell-solar-lock/dev.qml
 
 On KDE use the test command in the [KDE section](#kde-plasma). Then continue with the setup for your desktop.
 
+## Uninstall
+
+```sh
+curl -fsSL https://raw.githubusercontent.com/1ceblink/quickshell-solar-lock/main/uninstall.sh | sh
+```
+
+It restores your Hyprland lock bind (an untouched config is restored exactly from its `.bak-solar` copy; if you have edited it since, only the bind is put back), removes the KDE override if you set one up, and deletes `~/.local/share/quickshell-solar-lock` with its textures and meshes. Each step asks first (`--yes` skips the questions). Add `--packages` to be offered removal of the pacman packages `install.sh` added; packages you already had are never touched. A clone you made somewhere else is left in place.
+
 ## Hyprland and other Wayland compositors
 
 `bin/lock-solar` starts the lock and falls back to `hyprlock` if it fails. `install.sh` already points your lock key at it; to do it by hand, bind it yourself and let
@@ -236,13 +244,13 @@ shaders/earth_night.frag        Earth's city lights, shown only on the night sid
 dev.qml                         windowed preview, no locking
 bin/lock-solar                  launcher with the hyprlock fallback
 bin/preview                     opens the scene in a window, nothing is locked
-install.sh                      one-step setup: dependencies, code, textures, meshes
+install.sh, uninstall.sh        one-step setup and its undo: dependencies, code, textures, meshes, lock bind
 bin/install-kde, uninstall-kde  KDE Plasma setup and removal
 kde/lockscreen/LockScreen.qml   the KDE greeter UI that hosts Scene.qml
 tools/fetch_textures.py         downloads the textures and builds the ring and bump maps
 packaging/arch/PKGBUILD         Arch Linux package (also the base for the AUR package)
 tools/make_hearthian_meshes.py  generates the Hearthian planet meshes
-tools/patch_hypr_bind.py        points the Hyprland lock key at lock-solar (used by install.sh)
+tools/patch_hypr_bind.py        points the Hyprland lock key at lock-solar and reverts it (used by install.sh and uninstall.sh)
 textures/                       created by the script, not committed
 models/                         generated meshes (and your own extracted ones), not committed
 ```
